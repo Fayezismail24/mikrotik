@@ -30,7 +30,7 @@ WinBox paths follow WinBox 4 on RouterOS 7. Untested sections may have small men
 
 | | Section | Topics | Cert | Status |
 |---|---|---|---|---|
-| 0 | [Fundamentals: start here](0-fundamentals/) | What a router does, MikroTik/RouterOS/CHR, interfaces, IP basics | MTCNA | 🔄 |
+| 0 | [Fundamentals: start here](0-fundamentals/) | One file per lesson: router basics, MikroTik/RouterOS/CHR, interfaces, network devices (hub/switch/L3 switch/router/AP/modem/firewall), MikroTik product family, IP basics | MTCNA | 🔄 |
 | A | [Lab setup](A-lab-setup/) | EVE-NG, CHR image, first boot, Cloud0, VPCS | Lab | ✅ |
 | B | [Basics](B-basics/) | CLI, WinBox, users, NTP, backups, upgrades, default config, QuickSet, Netinstall, licenses, firmware | MTCNA | 🔄 |
 | C | [Addressing](C-addressing/) | IP, DHCP client/server, DNS, ARP | MTCNA | 📝 |
