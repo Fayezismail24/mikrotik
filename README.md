@@ -4,7 +4,7 @@ A complete, hands-on MikroTik RouterOS v7 guide, from first boot to advanced rou
 
 ## How each section is organized
 
-1. **Concept:** what it is and when to use it.
+1. **Concept:** what it is, why it exists, and how it differs from similar things (with analogies and comparison tables).
 2. **Config steps:** every step shows **both** ways to do it:
    - 🖱️ **WinBox:** the menu path and the fields to fill.
    - ⌨️ **CLI:** the RouterOS v7 command, ready to paste.
@@ -26,6 +26,7 @@ WinBox paths follow WinBox 4 on RouterOS 7. Untested sections may have small men
 
 | | Section | Topics | Status |
 |---|---|---|---|
+| 0 | [Fundamentals: start here](0-fundamentals/) | What a router does, MikroTik/RouterOS/CHR, interfaces, IP basics | 🔄 |
 | A | [Lab setup](A-lab-setup/) | EVE-NG, CHR image, first boot, Cloud0, VPCS | ✅ |
 | B | [Basics](B-basics/) | CLI, WinBox, users, NTP, backups, upgrades, reset | 🔄 |
 | C | [Addressing](C-addressing/) | IP, DHCP client/server, DNS, ARP | 📝 |
@@ -55,7 +56,7 @@ WinBox paths follow WinBox 4 on RouterOS 7. Untested sections may have small men
 
 ## Suggested learning order
 
-A → B → C → E → F → D → G → J → H → K → M → N → O → L → I
+0 → A → B → C → E → F → D → G → J → H → K → M → N → O → L → I
 
 The firewall and NAT come early because almost every later lab needs them.
 
