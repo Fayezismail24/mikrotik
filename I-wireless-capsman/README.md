@@ -1,57 +1,92 @@
 # I. Wireless and CAPsMAN
 
-> **Status:** 📝 Not yet tested. **CHR has no wireless hardware**, so this section needs a physical MikroTik (hAP, cAP, etc.) to practice.
+> **Status:** 📝 Not yet tested. **CHR has no wireless hardware**, so this section needs a physical MikroTik (hAP, cAP, etc.).
 
 ## Concept
 
-RouterOS 7 has **two wireless drivers**. Which one you use depends on the device:
+RouterOS 7 has **two wireless drivers**:
 
-| Package | Menu | Devices | CAPsMAN |
-|---|---|---|---|
-| **wifi** (new, also called "wifiwave2") | `/interface wifi` | Wi-Fi 5/6 devices: hAP ax², ax³, cAP ax, Audience, etc. | `/interface wifi capsman` |
-| **wireless** (legacy) | `/interface wireless` | Older 802.11n/ac: hAP ac², cAP ac, hAP lite, etc. | `/caps-man` |
+| Package | WinBox menu | CLI menu | Devices | CAPsMAN |
+|---|---|---|---|---|
+| **wifi** (new) | **WiFi** | `/interface wifi` | Wi-Fi 5/6 devices: hAP ax², ax³, cAP ax... | WiFi → **CAPsMAN** |
+| **wireless** (legacy) | **Wireless** | `/interface wireless` | Older 802.11n/ac: hAP ac², hAP lite... | **CAPsMAN** menu |
 
-Check which you have:
+### Which driver do I have?
 
+🖱️ **WinBox:** System → Packages, and check whether **WiFi** or **Wireless** appears in the left menu.
+
+⌨️ **CLI:**
 ```
 /system package print
 /interface print where type~"wifi|wlan"
 ```
 
-**CAPsMAN (Controlled Access Point system Manager)** is central management of many APs from one controller:
-- The **CAPsMAN** is the controller that holds the configuration.
-- **CAP** is an AP that gets its config from CAPsMAN.
-
-Key terms:
-- **SSID:** network name.
-- **Band / channel width:** 2.4 GHz (range) vs 5 GHz (speed), at 20/40/80 MHz.
-- **Security:** WPA2-PSK, WPA3-PSK, WPA2/3-Enterprise (RADIUS).
-- **Country:** sets the legal channels and power. Always set it correctly.
+**CAPsMAN** gives central management of many APs. The **controller** holds the config, and each **CAP** (access point) receives it.
 
 ---
 
-## Part 1: Standalone AP with the new `wifi` package
+## Part 1: Standalone AP with `wifi` (new)
 
+### Step 1: security profile
+
+🖱️ **WinBox:** WiFi → **Security** tab → **+**:
+- Name: `sec-home`
+- Authentication Types: `WPA2 PSK`, `WPA3 PSK`
+- Passphrase: `ChangeMe123!`
+
+⌨️ **CLI:**
 ```
 /interface wifi security add name=sec-home authentication-types=wpa2-psk,wpa3-psk passphrase="ChangeMe123!"
+```
+
+### Step 2: configuration
+
+🖱️ **WinBox:** WiFi → **Configurations** tab → **+**:
+- Name: `cfg-home`
+- SSID: `HomeNet`
+- Country: your country
+- **Security** section: `sec-home`
+
+⌨️ **CLI:**
+```
 /interface wifi configuration add name=cfg-home ssid="HomeNet" country="Lebanon" security=sec-home
+```
+
+### Step 3: apply to the radios and bridge them
+
+🖱️ **WinBox:**
+1. WiFi → **WiFi** tab → double-click `wifi1` → Configuration: `cfg-home` → OK → **Enable** (✓). Repeat for `wifi2`.
+2. Bridge → **Ports** → **+** → `wifi1` on `bridge1`. Repeat for `wifi2`.
+
+⌨️ **CLI:**
+```
 /interface wifi set wifi1 configuration=cfg-home disabled=no
 /interface wifi set wifi2 configuration=cfg-home disabled=no
 /interface bridge port add bridge=bridge1 interface=wifi1
 /interface bridge port add bridge=bridge1 interface=wifi2
 ```
 
-Use your own country name. Tab-complete it after `country=`.
+### Channel settings
 
-Channel settings:
+🖱️ **WinBox:**
+1. WiFi → **Channels** tab → **+** → Name `ch-5g`, Band `5ghz-ax`, Width `20/40/80mhz` → OK.
+2. Configurations → `cfg-home` → Channel: `ch-5g`.
 
+⌨️ **CLI:**
 ```
 /interface wifi channel add name=ch-5g band=5ghz-ax width=20/40/80mhz
 /interface wifi configuration set cfg-home channel=ch-5g
 ```
 
-### Guest network (virtual AP, own VLAN)
+### Guest network (virtual AP on VLAN 30)
 
+🖱️ **WinBox:**
+1. Security → **+** `sec-guest` (WPA2 PSK, passphrase).
+2. Configurations → **+** `cfg-guest` (SSID `Guest`, security `sec-guest`).
+3. WiFi → **+** → Master Interface `wifi2`, Name `wifi2-guest`, Configuration `cfg-guest`.
+4. Bridge → Ports → **+** → `wifi2-guest` on `bridge1`, VLAN tab PVID `30`.
+
+⌨️ **CLI:**
 ```
 /interface wifi security add name=sec-guest authentication-types=wpa2-psk passphrase="GuestPass123"
 /interface wifi configuration add name=cfg-guest ssid="Guest" security=sec-guest
@@ -59,33 +94,70 @@ Channel settings:
 /interface bridge port add bridge=bridge1 interface=wifi2-guest pvid=30
 ```
 
-Then add VLAN 30 to the bridge VLAN table (see [D. Bridging and VLANs](../D-bridging-vlans/)), and isolate it in the firewall.
+Then add VLAN 30 to the bridge VLAN table ([D](../D-bridging-vlans/)) and isolate it in the firewall.
 
 ### Monitor
 
-```
-/interface wifi registration-table print
-/interface wifi monitor wifi1
-/interface wifi radio print
-```
+| Check | 🖱️ WinBox | ⌨️ CLI |
+|---|---|---|
+| Connected clients | WiFi → **Registration** tab | `/interface wifi registration-table print` |
+| Radio status | WiFi → double-click → **Status** | `/interface wifi monitor wifi1` |
+| Scan the air | WiFi → **Scan** button | `/interface wifi scan wifi1` |
 
 ---
 
 ## Part 2: Standalone AP with legacy `wireless`
 
+### Security profile
+
+🖱️ **WinBox:** Wireless → **Security Profiles** → **+**:
+- Name: `home`
+- Mode: `dynamic keys`
+- WPA2 PSK: ✓
+- WPA2 Pre-Shared Key: `ChangeMe123!`
+
+⌨️ **CLI:**
 ```
 /interface wireless security-profiles add name=home mode=dynamic-keys authentication-types=wpa2-psk wpa2-pre-shared-key="ChangeMe123!"
-/interface wireless set wlan1 mode=ap-bridge ssid="HomeNet" band=2ghz-g/n frequency=auto country=lebanon security-profile=home disabled=no
-/interface wireless set wlan2 mode=ap-bridge ssid="HomeNet" band=5ghz-a/n/ac channel-width=20/40/80mhz-XXXX country=lebanon security-profile=home disabled=no
+```
+
+### Radio
+
+🖱️ **WinBox:** Wireless → double-click `wlan1` → **Wireless** tab:
+- Mode: `ap bridge`
+- Band: `2GHz-B/G/N`
+- SSID: `HomeNet`
+- Frequency: `auto`
+- Country: yours
+- Security Profile: `home`
+
+Click OK, then **Enable**.
+
+⌨️ **CLI:**
+```
+/interface wireless set wlan1 mode=ap-bridge ssid="HomeNet" band=2ghz-b/g/n frequency=auto country=lebanon security-profile=home disabled=no
 /interface wireless registration-table print
 ```
 
 ---
 
-## Part 3: CAPsMAN with the new `wifi` package
+## Part 3: CAPsMAN with `wifi` (new)
 
-### On the controller (usually the main router)
+### On the controller
 
+🖱️ **WinBox:**
+1. WiFi → **Security** → **+** `sec1`.
+2. WiFi → **Configurations** → **+** `cfg1`:
+   - SSID `Office`
+   - Country
+   - Security `sec1`
+   - **Datapath** section: Bridge `bridge1`
+3. WiFi → **CAPsMAN** button → Enabled ✓, Interfaces `bridge1` → OK.
+4. WiFi → **Provisioning** tab → **+**:
+   - Action `create dynamic enabled`, Master Configuration `cfg1`, Supported Bands `2ghz-ax`.
+   - Add another for `5ghz-ax`.
+
+⌨️ **CLI:**
 ```
 /interface wifi security add name=sec1 authentication-types=wpa2-psk,wpa3-psk passphrase="ChangeMe123!"
 /interface wifi configuration add name=cfg1 ssid="Office" country="Lebanon" security=sec1 datapath.bridge=bridge1
@@ -94,10 +166,14 @@ Then add VLAN 30 to the bridge VLAN table (see [D. Bridging and VLANs](../D-brid
 /interface wifi provisioning add action=create-dynamic-enabled master-configuration=cfg1 supported-bands=5ghz-ax
 ```
 
-If the controller's own radios should also be managed as CAPs, enable `/interface wifi cap set enabled=yes caps-man-addresses=127.0.0.1` on it. That's why the base firewall accepts `dst-address=127.0.0.1`.
+### On each CAP
 
-### On each CAP (access point)
+🖱️ **WinBox:**
+1. Bridge `bridge1` with `ether1` as a port. IP → DHCP Client on `bridge1`.
+2. WiFi → **CAP** button → Enabled ✓, Discovery Interfaces `bridge1`, Slaves Datapath `bridge1` → OK.
+3. WiFi → double-click each radio → Configuration → Manager `capsman`.
 
+⌨️ **CLI:**
 ```
 /interface bridge add name=bridge1
 /interface bridge port add bridge=bridge1 interface=ether1
@@ -106,22 +182,31 @@ If the controller's own radios should also be managed as CAPs, enable `/interfac
 /interface wifi set [find] configuration.manager=capsman
 ```
 
-The radio-to-CAPsMAN assignment syntax differs slightly between v7 minor releases. Check `/interface wifi print detail` on the CAP after enabling it.
+The CAP-side syntax varies slightly between v7 releases. Check `/interface wifi print detail` after enabling it.
 
-### Monitor CAPsMAN
+### Monitor
 
-```
-/interface wifi capsman remote-cap print
-/interface wifi print
-/interface wifi registration-table print
-```
+| Check | 🖱️ WinBox | ⌨️ CLI |
+|---|---|---|
+| Connected CAPs | WiFi → **Remote CAP** tab | `/interface wifi capsman remote-cap print` |
+| Clients | WiFi → Registration | `/interface wifi registration-table print` |
 
 ---
 
-## Part 4: Legacy CAPsMAN (`/caps-man`)
+## Part 4: Legacy CAPsMAN
 
-Controller:
+### Controller
 
+🖱️ **WinBox:** **CAPsMAN** menu:
+1. **Security Cfg.** → **+** `sec1`.
+2. **Configurations** → **+** `cfg1`:
+   - Wireless tab: SSID `Office`, Country.
+   - Datapath tab: Bridge `bridge1`.
+   - Security tab: `sec1`.
+3. **Manager** button → Enabled ✓.
+4. **Provisioning** → **+** → Action `create dynamic enabled`, Master Configuration `cfg1`.
+
+⌨️ **CLI:**
 ```
 /caps-man security add name=sec1 authentication-types=wpa2-psk passphrase="ChangeMe123!"
 /caps-man configuration add name=cfg1 ssid="Office" country=lebanon security=sec1 datapath.bridge=bridge1
@@ -129,29 +214,32 @@ Controller:
 /caps-man provisioning add action=create-dynamic-enabled master-configuration=cfg1
 ```
 
-CAP:
+### CAP
 
+🖱️ **WinBox:** Wireless → **CAP** button:
+- Enabled ✓
+- Interfaces `wlan1`, `wlan2`
+- Discovery Interfaces `bridge1`
+- Bridge `bridge1`
+
+⌨️ **CLI:**
 ```
 /interface wireless cap set enabled=yes interfaces=wlan1,wlan2 discovery-interfaces=bridge1 bridge=bridge1
 ```
 
-Monitor: `/caps-man remote-cap print`, `/caps-man registration-table print`.
-
-> The new `wifi` CAPsMAN **can't** manage legacy `wireless` CAPs, and vice versa. Keep one type per network, or run both controllers.
+> The new and legacy CAPsMAN **can't** manage each other's CAPs.
 
 ---
 
 ## Practice without hardware
 
-- Study the config in WebFig/WinBox on a CHR. The menus exist only when the package is installed, so mostly you can't.
-- Use a cheap device such as a hAP lite or hAP ax lite, connected to your EVE-NG lab through Cloud0.
+Get a cheap device (hAP lite, hAP ax lite) and connect it to the EVE-NG lab through Cloud0.
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| SSID not visible | Interface disabled, wrong country (channel not allowed), or DFS channel waiting (5 GHz takes about 1 minute). |
+| SSID not visible | Interface disabled, wrong country, or a DFS channel still waiting (5 GHz takes about 1 minute). |
 | Clients connect but get no IP | Wi-Fi interface not in the bridge, or the datapath bridge isn't set. |
-| CAP not showing in CAPsMAN | Not the same L2 network (use `caps-man-addresses=` for L3), firewall blocks UDP 5246/5247, or a version mismatch. |
-| Poor speed | Wrong channel width, interference (`/interface wifi scan wifi1`), or too-high TX power causing roaming issues. |
-| Mixed package confusion | Check `/system package print`. Use the menu that matches the installed driver. |
+| CAP missing in CAPsMAN | Different L2 (use CAPsMAN addresses for L3), firewall blocks UDP 5246/5247, or a version mismatch. |
+| Poor speed | Wrong width, interference (use Scan), or too much TX power. |
