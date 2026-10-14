@@ -62,14 +62,37 @@ Rules EVE-NG enforces:
 - Username `admin`, blank password.
 - Decline viewing the license (`n`), then set a new password.
 
+### Set the identity
+
+🖱️ **WinBox:** System → Identity → `R1` → OK
+
+⌨️ **CLI:**
 ```
 /system identity set name=R1
+```
+
+### Check interfaces and DHCP
+
+CHR ships with a DHCP client already on ether1.
+
+🖱️ **WinBox:**
+- **Interfaces**: ether1–ether4 are listed.
+- IP → **DHCP Client**: Status should be `bound`.
+- IP → **Addresses**: a `192.168.1.x` address with flag **D**.
+
+⌨️ **CLI:**
+```
 /interface print
 /ip dhcp-client print
 /ip address print
 ```
 
-CHR ships with a DHCP client already on ether1.
+### Connect with WinBox
+
+Once ether1 has an IP:
+1. Open WinBox.
+2. Type `192.168.1.133` (or pick R1 on the **Neighbors** tab).
+3. Log in.
 
 ## 5. Adding a test PC (VPCS)
 
@@ -85,12 +108,14 @@ save
 
 ## Verify
 
-```
-/ip dhcp-client print       # STATUS = bound
-/ip address print           # 192.168.1.x on ether1
-/ping 192.168.1.1 count=4
-/ping 8.8.8.8 count=4
-```
+| Check | 🖱️ WinBox | ⌨️ CLI |
+|---|---|---|
+| DHCP bound | IP → DHCP Client (Status `bound`) | `/ip dhcp-client print` |
+| IP on ether1 | IP → Addresses | `/ip address print` |
+| Gateway reachable | Tools → Ping → `192.168.1.1` | `/ping 192.168.1.1 count=4` |
+| Internet reachable | Tools → Ping → `8.8.8.8` | `/ping 8.8.8.8 count=4` |
+
+The EVE-NG install and troubleshooting steps below are Linux commands on the EVE-NG host, so they're CLI only.
 
 ## Troubleshooting
 
