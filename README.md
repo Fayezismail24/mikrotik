@@ -1,78 +1,56 @@
 # MikroTik A to Z
 
-Hands-on MikroTik RouterOS learning, from first boot to advanced routing, built and tested in an EVE-NG lab.
+A complete, hands-on MikroTik RouterOS v7 guide, from first boot to advanced routing, VPN and security. Every section is built to practice in an EVE-NG lab with MikroTik CHR.
+
+## How each section is organized
+
+1. **Concept:** what it is and when to use it.
+2. **CLI:** RouterOS v7 commands, ready to paste.
+3. **WinBox / EVE-NG lab:** a topology and step-by-step exercise.
+4. **Verify:** commands that prove it works.
+5. **Troubleshooting:** common mistakes and fixes.
+
+**Status:** ✅ Tested in lab · 📝 Written, not yet tested
+
+## Contents
+
+| | Section | Topics | Status |
+|---|---|---|---|
+| A | [Lab setup](A-lab-setup/) | EVE-NG, CHR image, first boot, Cloud0, VPCS | ✅ |
+| B | [Basics](B-basics/) | CLI, WinBox, users, NTP, backups, upgrades, reset | 📝 |
+| C | [Addressing](C-addressing/) | IP, DHCP client/server, DNS, ARP | 📝 |
+| D | [Bridging and VLANs](D-bridging-vlans/) | Bridge, VLAN filtering, access/trunk, inter-VLAN | 📝 |
+| E | [Firewall](E-firewall/) | Chains, conntrack, base ruleset, address lists, brute-force | 📝 |
+| F | [NAT](F-nat/) | Masquerade, port forwarding, hairpin, netmap | 📝 |
+| G | [Static routing](G-static-routing/) | Routes, failover, recursive, ECMP, PBR | 📝 |
+| H | [Dynamic routing](H-dynamic-routing/) | OSPF, BGP (v7 syntax), routing filters | 📝 |
+| I | [Wireless and CAPsMAN](I-wireless-capsman/) | wifi vs. wireless packages, AP, CAPsMAN | 📝 (needs hardware) |
+| J | [VPN](J-vpn/) | WireGuard, IPsec IKEv2, L2TP/IPsec, SSTP | 📝 |
+| K | [QoS](K-qos/) | Simple queues, PCQ, mangle + queue tree, CAKE | 📝 |
+| L | [Hotspot and PPPoE](L-hotspot-pppoe/) | Captive portal, User Manager, PPPoE server/client | 📝 |
+| M | [Monitoring](M-monitoring/) | Logs, torch, sniffer, Netwatch, SNMP, The Dude | 📝 |
+| N | [Scripting](N-scripting/) | Language basics, scheduler, backup scripts, REST API | 📝 |
+| O | [Security hardening](O-security-hardening/) | Services, users, MAC access, device-mode, audit | 📝 |
+
+📄 **[Cheatsheet](cheatsheet.md)**: the most-used commands on one page.
 
 ## Lab environment
 
 | Item | Value |
 |---|---|
 | Hypervisor | VMware Workstation (bridged to wired NIC) |
-| EVE-NG host | `192.168.1.131` (SSH: `ssh root@192.168.1.131`) |
-| RouterOS image | MikroTik CHR 7.24.5 |
-| Image path on EVE-NG | `/opt/unetlab/addons/qemu/mikrotik-7.24.5/hda.qcow2` |
-| R1 | ether1 → Cloud0 (pnet0), DHCP `192.168.1.133/24` |
+| EVE-NG host | `192.168.1.131` |
+| RouterOS | CHR 7.24.5 |
+| Home LAN ("internet" for labs) | `192.168.1.0/24` via Cloud0 / pnet0 |
 
-## Roadmap
+## Suggested learning order
 
-- [x] **A. Lab setup**: EVE-NG, CHR image, first boot, home LAN access
-- [ ] **B. Basics**: CLI, WinBox, users, identity, backups, upgrades
-- [ ] **C. Addressing**: IP addresses, DHCP client/server, DNS
-- [ ] **D. Bridging and switching**: bridges, VLANs, trunk/access ports
-- [ ] **E. Firewall**: filter rules, connection tracking, address lists
-- [ ] **F. NAT**: masquerade, src-nat, dst-nat / port forwarding
-- [ ] **G. Static routing**: routes, distance, gateways, failover
-- [ ] **H. Dynamic routing**: OSPF, BGP
-- [ ] **I. Wireless and CAPsMAN**
-- [ ] **J. VPN**: WireGuard, IPsec, L2TP, SSTP
-- [ ] **K. QoS**: simple queues, queue trees, mangle
-- [ ] **L. Hotspot and PPPoE**
-- [ ] **M. Monitoring**: logging, SNMP, Netwatch, The Dude
-- [ ] **N. Scripting and scheduler**
-- [ ] **O. Security hardening**
+A → B → C → E → F → D → G → J → H → K → M → N → O → L → I
 
-## A. Lab setup
+The firewall and NAT come early because almost every later lab needs them.
 
-### Install CHR on EVE-NG
+## References
 
-Run on the EVE-NG host:
-
-```bash
-mkdir -p /opt/unetlab/addons/qemu/mikrotik-7.24.5
-cd /opt/unetlab/addons/qemu/mikrotik-7.24.5
-wget https://download.mikrotik.com/routeros/7.24.5/chr-7.24.5.img.zip
-unzip chr-7.24.5.img.zip
-qemu-img convert -f raw -O qcow2 chr-7.24.5.img hda.qcow2
-rm -f chr-7.24.5.img chr-7.24.5.img.zip
-/opt/unetlab/wrappers/unl_wrapper -a fixpermissions
-```
-
-### First login
-
-Username `admin`, blank password, then set a new one.
-
-```
-/system identity set name=R1
-/interface print
-/ip dhcp-client print
-/ip address print
-```
-
-CHR ships with a DHCP client on ether1 already.
-
-### Troubleshooting: node not reaching the LAN through Cloud0
-
-Symptom: `/ip dhcp-client print` stays on `searching...`.
-
-On the EVE-NG host:
-
-```bash
-brctl show pnet0          # should list eth0 AND vunl0_1_0 (R1 ether1)
-ip link | grep vunl       # confirms the node's interfaces exist
-```
-
-If `vunl0_1_0` is missing from pnet0:
-
-- Quick fix (lost on node restart): `brctl addif pnet0 vunl0_1_0`
-- Proper fix: stop the node, delete the link, re-link ether1 to the Cloud0 network, and start the node.
-
-Remember: `brctl` and `tcpdump` run on the EVE-NG host (`root@eve-ng`), not in the RouterOS console (`[admin@R1] >`).
+- MikroTik documentation: https://help.mikrotik.com/docs/
+- MikroTik forum: https://forum.mikrotik.com/
+- Downloads (RouterOS, CHR, WinBox): https://mikrotik.com/download
