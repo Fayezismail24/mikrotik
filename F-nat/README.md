@@ -4,125 +4,192 @@
 
 ## Concept
 
-**NAT (Network Address Translation)** rewrites the IP addresses in packets.
+**NAT** rewrites IP addresses in packets.
 
 | Type | Chain | What it does | Typical use |
 |---|---|---|---|
-| **Masquerade** | `srcnat` | Replaces the source IP with the out-interface's IP (dynamic) | LAN → internet on DHCP/PPPoE WAN |
-| **src-nat** | `srcnat` | Replaces the source IP with a fixed IP | LAN → internet on a static WAN IP |
-| **dst-nat** | `dstnat` | Replaces the destination IP/port | Port forwarding to an internal server |
-| **netmap** | either | 1:1 subnet mapping | Overlapping subnets, 1:1 NAT |
+| **Masquerade** | `srcnat` | Source → the out-interface's IP (dynamic) | LAN → internet on DHCP/PPPoE WAN |
+| **src-nat** | `srcnat` | Source → a fixed IP | LAN → internet on a static WAN |
+| **dst-nat** | `dstnat` | Destination → an internal IP/port | Port forwarding |
+| **netmap** | either | 1:1 subnet mapping | 1:1 NAT, overlapping subnets |
 | **redirect** | `dstnat` | Sends to the router itself | Force DNS to the router |
 
-NAT only processes the **first packet** of a connection. Connection tracking handles the rest automatically, including the replies.
+NAT only processes the **first packet** of a connection. Connection tracking handles the rest.
+
+🖱️ **In WinBox,** NAT rules live at **IP → Firewall → NAT**. They use the same rule dialog as filter rules: **General** tab for matching, **Action** tab for the action plus **To Addresses** / **To Ports**.
+
+---
 
 ## 1. Internet access for the LAN (masquerade)
 
+🖱️ **WinBox:** IP → Firewall → **NAT** → **+**:
+- General tab: Chain `srcnat`, Out. Interface List `WAN`.
+- Action tab: `masquerade`.
+- Comment: `LAN to Internet`.
+
+Click **OK**.
+
+⌨️ **CLI:**
 ```
 /ip firewall nat add chain=srcnat out-interface-list=WAN action=masquerade comment="LAN to Internet"
 ```
 
-You need the interface lists from [E. Firewall](../E-firewall/), or use `out-interface=ether1`.
+### Static WAN IP: src-nat
 
-If the WAN IP is **static**, `src-nat` is slightly more efficient:
+🖱️ **WinBox:** NAT → **+**:
+- General: Chain `srcnat`, Out. Interface `ether1`.
+- Action: `src-nat`, To Addresses `203.0.113.10`.
 
+⌨️ **CLI:**
 ```
 /ip firewall nat add chain=srcnat out-interface=ether1 action=src-nat to-addresses=203.0.113.10
 ```
 
+---
+
 ## 2. Port forwarding (dst-nat)
 
-Forward WAN TCP 8080 to an internal web server at 192.168.10.50 on port 80:
+WAN TCP 8080 → internal web server `192.168.10.50:80`.
 
+🖱️ **WinBox:** NAT → **+**:
+- General: Chain `dstnat`, Protocol `tcp`, Dst. Port `8080`, In. Interface List `WAN`.
+- Action: `dst-nat`, To Addresses `192.168.10.50`, To Ports `80`.
+- Comment: `Web server`.
+
+⌨️ **CLI:**
 ```
 /ip firewall nat add chain=dstnat in-interface-list=WAN protocol=tcp dst-port=8080 action=dst-nat to-addresses=192.168.10.50 to-ports=80 comment="Web server"
 ```
 
-Forward RDP to a PC, restricted to one source:
+### Restricted to a trusted source (RDP example)
 
+🖱️ **WinBox:** NAT → **+**:
+- General: Chain `dstnat`, Protocol `tcp`, Dst. Port `3389`, In. Interface List `WAN`.
+- Advanced: Src. Address List `MGMT-ALLOWED`.
+- Action: `dst-nat`, To Addresses `192.168.10.60`.
+
+⌨️ **CLI:**
 ```
 /ip firewall nat add chain=dstnat in-interface-list=WAN protocol=tcp dst-port=3389 src-address-list=MGMT-ALLOWED action=dst-nat to-addresses=192.168.10.60
 ```
 
-Port range:
+### Port range
 
+🖱️ **WinBox:** same as above, with Protocol `udp`, Dst. Port `5060-5070`, To Addresses `192.168.20.10`.
+
+⌨️ **CLI:**
 ```
 /ip firewall nat add chain=dstnat in-interface-list=WAN protocol=udp dst-port=5060-5070 action=dst-nat to-addresses=192.168.20.10
 ```
 
-The base forward-chain firewall rule `connection-nat-state=!dstnat` already **allows** dst-nat-ed traffic, so no extra filter rule is needed.
+The base forward-chain rule `connection-nat-state=!dstnat` already **allows** forwarded traffic, so no extra filter rule is needed.
 
-If the WAN IP is static, use `dst-address=<wan-ip>` instead of `in-interface-list=WAN`. That's required for hairpin NAT below.
+---
 
-## 3. Hairpin NAT (access the port forward from inside the LAN)
+## 3. Hairpin NAT (reach the port forward from inside the LAN)
 
-**Problem:** LAN PC → `public-ip:8080` fails, because the server replies directly to the PC, bypassing the router.
+**Problem:** a LAN PC going to `public-ip:8080` fails, because the server replies directly to the PC and bypasses the router.
 
-**Fix:** (1) make dst-nat match by destination IP rather than in-interface, and (2) masquerade LAN→LAN traffic toward the server:
+### Step 1: dst-nat matched by destination IP
 
+🖱️ **WinBox:** NAT → **+**:
+- General: Chain `dstnat`, Dst. Address `203.0.113.10`, Protocol `tcp`, Dst. Port `8080`.
+- Action: `dst-nat`, To Addresses `192.168.10.50`, To Ports `80`.
+
+⌨️ **CLI:**
 ```
 /ip firewall nat add chain=dstnat dst-address=203.0.113.10 protocol=tcp dst-port=8080 action=dst-nat to-addresses=192.168.10.50 to-ports=80
+```
+
+### Step 2: masquerade LAN → server
+
+🖱️ **WinBox:** NAT → **+**:
+- General: Chain `srcnat`, Src. Address `192.168.10.0/24`, Dst. Address `192.168.10.50`, Protocol `tcp`, Dst. Port `80`, Out. Interface `bridge1`.
+- Action: `masquerade`.
+- Comment: `Hairpin`.
+
+⌨️ **CLI:**
+```
 /ip firewall nat add chain=srcnat src-address=192.168.10.0/24 dst-address=192.168.10.50 protocol=tcp dst-port=80 out-interface=bridge1 action=masquerade comment="Hairpin"
 ```
 
-With a dynamic WAN IP, use `dst-address-type=local` plus `in-interface-list=LAN` on the dst-nat rule, or keep the public IP in an address list updated by script or DDNS (`/ip cloud`).
+With a dynamic WAN IP, keep the public IP in an address list (a script, see [N](../N-scripting/)) and match on Dst. Address List instead.
+
+---
 
 ## 4. Force all DNS through the router
 
+🖱️ **WinBox:** NAT → **+** (twice, once for `udp` and once for `tcp`):
+- General: Chain `dstnat`, Protocol `udp` (then `tcp`), Dst. Port `53`, In. Interface List `LAN`.
+- Action: `redirect`, To Ports `53`.
+
+⌨️ **CLI:**
 ```
 /ip firewall nat add chain=dstnat in-interface-list=LAN protocol=udp dst-port=53 action=redirect to-ports=53
 /ip firewall nat add chain=dstnat in-interface-list=LAN protocol=tcp dst-port=53 action=redirect to-ports=53
 ```
 
+---
+
 ## 5. 1:1 NAT with netmap
 
-Map a public /29 to an internal /29:
+🖱️ **WinBox:** NAT → **+**:
+- Rule 1: Chain `dstnat`, Dst. Address `203.0.113.8/29`. Action `netmap`, To Addresses `192.168.50.8/29`.
+- Rule 2: Chain `srcnat`, Src. Address `192.168.50.8/29`. Action `netmap`, To Addresses `203.0.113.8/29`.
 
+⌨️ **CLI:**
 ```
 /ip firewall nat add chain=dstnat dst-address=203.0.113.8/29 action=netmap to-addresses=192.168.50.8/29
 /ip firewall nat add chain=srcnat src-address=192.168.50.8/29 action=netmap to-addresses=203.0.113.8/29
 ```
 
+---
+
 ## 6. NAT bypass for VPN
 
-When a site-to-site VPN uses IPsec policies, masquerade would rewrite the traffic before IPsec catches it. Add an accept rule **above** masquerade:
+Put an accept rule **above** masquerade so IPsec traffic isn't NATed.
 
+🖱️ **WinBox:** NAT → **+**:
+- General: Chain `srcnat`, Src. Address `192.168.10.0/24`, Dst. Address `192.168.2.0/24`.
+- Action: `accept`.
+- Comment: `No NAT to VPN`.
+
+Click OK, then **drag the rule to the top**.
+
+⌨️ **CLI:**
 ```
 /ip firewall nat add chain=srcnat src-address=192.168.10.0/24 dst-address=192.168.2.0/24 action=accept place-before=0 comment="No NAT to VPN"
 ```
 
-See [J. VPN](../J-vpn/).
+---
 
 ## EVE-NG lab
 
 ```
 [Cloud0 / home LAN 192.168.1.0/24] --ether1-- R1 --ether2-- PC1 (192.168.10.10)
-                                                  \-ether3-- SRV (VPCS or CHR, 192.168.10.50)
+                                                  \-ether3-- SRV (CHR, 192.168.10.50)
 ```
 
-Treat your home LAN as "the internet".
-
 1. Add masquerade. PC1 can now `ping 8.8.8.8`.
-2. Make a second CHR the "server": give it `192.168.10.50` and enable `/ip service set www disabled=no` so it serves WebFig on port 80.
-3. Add a dst-nat from WAN TCP 8080 to `192.168.10.50:80`.
-4. From your Windows PC browser, open `http://192.168.1.133:8080`. You should see the SRV WebFig page.
-5. From PC1 that won't work by IP (VPCS has no browser), but test hairpin with a CHR client: `/tool fetch url="http://192.168.1.133:8080" mode=http`.
+2. On SRV: IP → Services → enable `www` (port 80).
+3. On R1: dst-nat from WAN TCP 8080 to `192.168.10.50:80`.
+4. From your Windows browser, open `http://192.168.1.133:8080`. You should see SRV's WebFig.
+5. Test hairpin from a CHR on the LAN: `/tool fetch url="http://192.168.1.133:8080" mode=http`.
 
 ## Verify
 
-```
-/ip firewall nat print
-/ip firewall nat print stats
-/ip firewall connection print where dst-address~"192.168.10.50"
-/tool torch interface=ether1 port=8080
-```
+| Check | 🖱️ WinBox | ⌨️ CLI |
+|---|---|---|
+| NAT rules + counters | IP → Firewall → NAT | `/ip firewall nat print stats` |
+| Translated connections | IP → Firewall → Connections (filter by dst) | `/ip firewall connection print where dst-address~"192.168.10.50"` |
+| Live traffic on the port | Tools → Torch → Interface `ether1`, Port `8080` | `/tool torch interface=ether1 port=8080` |
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| LAN has no internet | Missing masquerade, wrong out-interface, or no default route on the router. |
-| Port forward works from outside but not inside | You need hairpin NAT. |
-| Port forward doesn't work at all | ISP CGNAT (the WAN IP is 100.64.x.x or private), the ISP blocks the port, the server's firewall blocks it, or the server has the wrong gateway. |
-| NAT rule counters stay 0 | NAT only sees **new** connections. Check that the rule order and match fields are right. |
-| VPN traffic gets NATed | Add the NAT bypass rule above masquerade. |
+| LAN has no internet | Missing masquerade, wrong out-interface, or no default route. |
+| Forward works outside, not inside | You need hairpin NAT. |
+| Forward doesn't work at all | ISP CGNAT (WAN is 100.64.x.x or private), ISP blocks the port, the server's firewall, or the server has the wrong gateway. |
+| Counters stay 0 | NAT only sees **new** connections. Check the match fields. |
+| VPN traffic NATed | Put the NAT bypass rule above masquerade. |
