@@ -1,6 +1,8 @@
 # E. Firewall
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** MTCNA module 6 (Firewall) · MTCSE
 
 ## Concept
 

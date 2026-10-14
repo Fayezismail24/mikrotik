@@ -1,6 +1,8 @@
 # K. QoS: Queues and Mangle
 
 > **Status:** 📝 Not yet tested. The CHR free license limits upload to 1 Mbit/s per interface, so test with small limits like 256k and 512k.
+>
+> **Cert:** MTCNA module 7 (QoS) · MTCTCE · 🔹 CAKE is beyond MTCNA
 
 ## Concept
 

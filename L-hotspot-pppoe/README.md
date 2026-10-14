@@ -1,6 +1,8 @@
 # L. Hotspot and PPPoE
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** MTCNA module 8 (PPPoE) · MTCUME (Hotspot, User Manager)
 
 ## Concept
 

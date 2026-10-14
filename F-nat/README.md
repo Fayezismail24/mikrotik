@@ -1,6 +1,8 @@
 # F. NAT
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** MTCNA module 6 (Firewall: NAT)
 
 ## Concept
 

@@ -1,6 +1,8 @@
 # O. Security Hardening
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** MTCSE · basics appear in MTCNA module 1
 
 ## Concept
 

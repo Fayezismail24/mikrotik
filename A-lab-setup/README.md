@@ -1,6 +1,8 @@
 # A. Lab Setup (EVE-NG + MikroTik CHR)
 
 > **Status:** ✅ Tested in lab (CHR 7.24.5, EVE-NG Community on VMware Workstation)
+>
+> **Cert:** Lab environment for every cert (not an exam topic)
 
 ## Concept
 

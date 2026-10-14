@@ -1,6 +1,8 @@
 # 0. Fundamentals: Start Here
 
 > **Status:** 🔄 Lesson 1 done. More lessons are added as the course goes.
+>
+> **Cert:** MTCNA module 1 (Introduction)
 
 This section starts from zero. Every lesson follows the same pattern:
 

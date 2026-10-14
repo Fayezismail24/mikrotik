@@ -1,6 +1,8 @@
 # N. Scripting and Scheduler
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** 🔹 Beyond MTCNA/MTCRE (useful at every level)
 
 ## Concept
 

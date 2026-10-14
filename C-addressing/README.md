@@ -1,6 +1,8 @@
 # C. Addressing: IP, DHCP, DNS
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** MTCNA module 2 (DHCP) · addressing basics for all certs
 
 ## Concept
 

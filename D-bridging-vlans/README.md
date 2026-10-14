@@ -1,6 +1,8 @@
 # D. Bridging and VLANs
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** MTCNA module 3 (Bridging) · MTCRE (VLANs)
 
 ## Concept
 
