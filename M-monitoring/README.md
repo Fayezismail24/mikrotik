@@ -1,6 +1,8 @@
 # M. Monitoring and Troubleshooting Tools
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** MTCNA module 9 (Tools)
 
 ## Concept
 
@@ -247,6 +249,51 @@ The Dude is MikroTik's free network map and monitoring tool. The server is the `
 ```
 /dude set enabled=yes data-directory=dude
 ```
+
+---
+
+## 9. supout.rif (support output file)
+
+### What is it?
+
+A **supout.rif** is a full diagnostic snapshot of the router: config, logs, routing tables, interface stats, CPU and memory state, and more. It's packed into one file that **MikroTik support** reads with their viewer.
+
+**Analogy:** a doctor's full blood test. You don't read it yourself; you hand it to the specialist.
+
+### supout.rif vs autosupout.rif vs backup vs export
+
+| File | Made when | For | Readable by you? |
+|---|---|---|---|
+| **supout.rif** | You create it manually | Sending to MikroTik support for a problem happening **now** | Only with the viewer in your mikrotik.com account |
+| **autosupout.rif** | Automatically, after a **crash** (watchdog reboot) | Showing support what the router looked like when it crashed | Same |
+| `.backup` | You create it | Restoring config | ❌ |
+| `.rsc` export | You create it | Reading and sharing config | ✅ |
+
+> **Privacy:** a supout contains your full config, including addresses and possibly secrets. Only send it to MikroTik support, and never post it publicly.
+
+### Create a supout.rif
+
+🖱️ **WinBox:** **Make Supout.rif** in the left menu (on some versions it's under Files). Wait until it finishes, then drag `supout.rif` from **Files** to your PC.
+
+⌨️ **CLI:**
+```
+/system sup-output name=supout.rif
+/file print where name~"supout"
+```
+
+### Auto-supout on crash
+
+🖱️ **WinBox:** System → **Watchdog** → Automatic Supout ✓
+
+⌨️ **CLI:**
+```
+/system watchdog set automatic-supout=yes
+```
+
+### Send to support
+
+1. Log in at mikrotik.com → **Support** → you can open a supout in the **Supout viewer** yourself.
+2. Email support@mikrotik.com with a description of the problem and the `supout.rif` attached, made **while the problem is happening**.
 
 ---
 
