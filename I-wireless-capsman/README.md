@@ -1,6 +1,8 @@
 # I. Wireless and CAPsMAN
 
-> **Status:** 📝 Not yet tested. Hardware available: a hAP at home (model to be confirmed). CHR has no wireless hardware, so the Wi-Fi radios in this section come from the hAP.
+> **Status:** 📝 Not yet tested. Hardware available: a spare hAP bought for MTCNA (not the home router, free to reset; model to be confirmed). CHR has no wireless hardware, so the Wi-Fi radios in this section come from the hAP.
+>
+> **Cert:** MTCNA module 5 (Wireless) · MTCWE
 
 ## Concept
 
