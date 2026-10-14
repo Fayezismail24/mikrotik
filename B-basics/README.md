@@ -1,6 +1,8 @@
 # B. Basics: CLI, WinBox, Users, Backups, Upgrades
 
 > **Status:** 🔄 In progress. Identity, clock/NTP and users tested on CHR 7.24.5 with WinBox.
+>
+> **Cert:** MTCNA module 1 (Introduction: access, backups, upgrades, licenses, Netinstall)
 
 ## Concept
 
@@ -370,6 +372,182 @@ In EVE-NG, prefer Shutdown over **Stop** to avoid the "rebooted without proper s
 
 ---
 
+## 12. Default configuration (hAP)
+
+### What is it?
+
+When a physical MikroTik leaves the factory, or after you reset it, it runs a **default configuration script** that makes it work out of the box as a home router.
+
+**Analogy:** a new phone's factory settings. It works the moment you turn it on, but it isn't set up *your* way.
+
+### What a hAP's default config sets up
+
+| Part | Default value | Why |
+|---|---|---|
+| WAN | `ether1` with a **DHCP client** | Plug in the ISP modem and get internet |
+| LAN | `ether2`–`ether5` + Wi-Fi in a **bridge** | All LAN ports and Wi-Fi are one network |
+| LAN IP | `192.168.88.1/24` | The router's address on the LAN |
+| DHCP server | Pool `192.168.88.10–254` | LAN devices get IPs automatically |
+| NAT | Masquerade out of the WAN list | LAN devices share the WAN IP |
+| Firewall | Base input/forward rules | Blocks the internet from reaching the router and LAN |
+| Interface lists | `WAN` = ether1, `LAN` = bridge | Firewall rules use these |
+| Wi-Fi | SSID `MikroTik-XXXXXX` | Newer devices use a password printed on the sticker |
+| Login | `admin` + the password on the sticker (newer devices) or blank (older) | |
+
+**CHR has no real default config.** It only gets a DHCP client on ether1, because it's a VM with no "home" role.
+
+### Default config vs empty config
+
+| | Default config | No default config (`no-defaults=yes`) |
+|---|---|---|
+| Works out of the box | ✅ | ❌ Nothing configured |
+| Firewall | ✅ Basic protection | ❌ **Wide open** |
+| Good for | Home use, quick setup | Learning, building everything yourself |
+| Risk | Settings you didn't write and might not understand | Forgetting the firewall |
+
+**For the course:** we reset the hAP with **no default config** and build everything ourselves, so you understand every line.
+
+### View the default script
+
+🖱️ **WinBox:** no viewer. Use **New Terminal**.
+
+⌨️ **CLI:**
+```
+/system default-configuration print
+```
+
+---
+
+## 13. QuickSet
+
+### What is it?
+
+**QuickSet** is a one-page setup wizard in WinBox and WebFig. You pick a mode (Home AP, WISP AP, CPE, PTP Bridge...) and fill in a few fields: internet type, Wi-Fi name, password, LAN IP.
+
+### QuickSet vs manual config
+
+| | QuickSet | Manual (WinBox menus / CLI) |
+|---|---|---|
+| Speed | ✅ A minute | Slower |
+| Flexibility | ❌ Only what the page offers | ✅ Everything |
+| Learning value | Low | High |
+| Danger | Can **overwrite** manual changes | You control everything |
+
+**Rule:** use QuickSet **or** manual config on a device, not both. QuickSet can undo or conflict with things you built by hand.
+
+🖱️ **WinBox:** **Quick Set** (top of the left menu) → choose the mode → fill in the fields → **Apply Configuration**
+
+⌨️ **CLI:** there's no QuickSet in the CLI. It's a GUI-only wizard.
+
+---
+
+## 14. Netinstall
+
+### What is it?
+
+**Netinstall** is a PC tool that **reinstalls RouterOS from scratch** over an Ethernet cable. The router boots from your PC over the network and gets a fresh OS.
+
+**Analogy:** reinstalling Windows from a USB stick, when the computer won't boot or you forgot the password.
+
+### When to use it
+
+| Situation | Reset button enough? | Netinstall? |
+|---|---|---|
+| Forgot the config, still have access | ✅ Use `/system reset-configuration` | ❌ |
+| Forgot the password | ✅ Reset button | ✅ Also works |
+| Router won't boot (bad upgrade, corrupted) | ❌ | ✅ |
+| Want a different architecture package or a clean downgrade | ❌ | ✅ |
+| Reset button disabled (`protected-routerboot`) | ❌ | ✅ |
+
+### Steps (Windows + hAP)
+
+1. **Download** from mikrotik.com/download:
+   - **Netinstall** for Windows.
+   - The **main RouterOS package** (`routeros-7.x.x-<arch>.npk`) for your hAP's architecture. hAP ax models are **arm64**, hAP ac² / ac³ are **arm**, hAP lite / ac lite are **mipsbe**. Check System → Resources → *architecture-name*.
+   - The **wireless** or **wifi** extra package if your model needs one.
+2. **PC network:** give your wired NIC a static IP, e.g. `192.168.88.2/24`. Disable Wi-Fi and other NICs, and allow Netinstall through the Windows firewall.
+3. Run **Netinstall as administrator**. Click **Net booting** → tick **Boot Server enabled** → Client IP `192.168.88.3` → OK.
+4. **Cable:** connect the PC to the hAP's **ether1** (on most models, the port Netinstall uses).
+5. **Power on while holding the reset button.** Keep holding for about 15–20 seconds, past the LED flashing, until the hAP **appears in the Netinstall list**.
+6. Select the device, click **Browse** to the folder with the `.npk` files, and tick the packages.
+7. Choose **Keep old configuration** or **Apply default config** (or neither, for empty), then click **Install**.
+8. When it says **Done**, the hAP reboots with a fresh RouterOS.
+
+### Reset button timings (power on while holding)
+
+| Release when... | Result |
+|---|---|
+| The LED starts **flashing** (~5 s) | Reset to **default config** |
+| The LED goes **solid** (~10 s) | Reset and start in **CAP mode** (CAPsMAN) |
+| The LED turns **off** (~15 s+) | Look for a **Netinstall** server |
+
+Exact timings vary by model. Check your hAP's manual page on help.mikrotik.com.
+
+---
+
+## 15. RouterOS licenses
+
+### What is it?
+
+Every RouterOS install has a **license level** that limits what it can do. **Physical MikroTik devices come with their license built in**, so you never buy one for a hAP.
+
+| Level | Typical use | Main limits |
+|---|---|---|
+| 0 | Demo (24 h) | Expires |
+| 1 | Free demo level | Very limited |
+| 3 | CPE / wireless client | No wireless AP mode |
+| **4** | **WISP AP** (most hAPs, cAPs) | Plenty for home and small business |
+| 5 | WISP | More tunnels and users |
+| 6 | Controller (CCR, CHR licenses) | Unlimited |
+
+### CHR licenses are different (speed-based)
+
+| CHR license | Speed limit per interface |
+|---|---|
+| **free** | **1 Mbit/s** upload |
+| p1 | 1 Gbit/s |
+| p10 | 10 Gbit/s |
+| p-unlimited | Unlimited |
+
+A free **60-day trial** of p1 / p-unlimited needs a mikrotik.com account.
+
+🖱️ **WinBox:** System → **License**
+
+⌨️ **CLI:**
+```
+/system license print
+```
+
+---
+
+## 16. RouterOS vs RouterBOARD firmware
+
+### What's the difference?
+
+| | **RouterOS** | **RouterBOOT** (firmware) |
+|---|---|---|
+| What | The operating system | The **bootloader** that starts the OS |
+| Analogy | Windows | The PC's BIOS/UEFI |
+| Upgrade with | System → Packages → Check For Updates | System → RouterBOARD → **Upgrade** |
+| Exists on CHR? | ✅ | ❌ (VMs have no RouterBOOT) |
+
+**Rule:** after upgrading **RouterOS** on a hAP, also upgrade the **firmware**, then reboot once more. The firmware version should match the RouterOS version.
+
+🖱️ **WinBox:** System → **RouterBOARD**:
+- Compare **Current Firmware** with **Upgrade Firmware**.
+- If they differ, click **Upgrade**, then System → **Reboot**.
+- Optional: tick **Auto Upgrade** so the firmware updates itself after each RouterOS upgrade.
+
+⌨️ **CLI:**
+```
+/system routerboard print
+/system routerboard upgrade
+/system reboot
+/system routerboard settings set auto-upgrade=yes
+```
+
+---
+
 ## EVE-NG lab
 
 **Topology:** R1 ether1 → Cloud0.
@@ -390,6 +568,9 @@ In EVE-NG, prefer Shutdown over **Stop** to avoid the "rebooted without proper s
 - ⬜ Upgrades
 - ⬜ Safe Mode
 - ⬜ Reset
+- ⬜ hAP: default config, reset button, QuickSet
+- ⬜ hAP: Netinstall
+- ⬜ hAP: license + firmware upgrade
 
 ## Troubleshooting
 
