@@ -1,6 +1,8 @@
 # G. Static Routing
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** MTCNA module 4 (Routing) · MTCRE (static routing, /32 addressing, VRRP)
 
 ## Concept
 
@@ -107,6 +109,76 @@ The gateway can also be an interface (`ether2`, `wg1`, `pppoe-out1`), which is u
 
 If 8.8.8.8 stops answering through ISP1, the traffic moves to ISP2. The side effect is that traffic to 8.8.8.8 itself always uses ISP1.
 
+### Scope and target-scope explained (MTCRE)
+
+**The problem they solve:** a route's gateway must itself be reachable through **another** route. RouterOS needs rules for which routes may be used to "find" a gateway. Without them, routes could resolve through each other in loops.
+
+- **scope:** "how far up this route can help." It's this route's rank when **other** routes look for their gateway through it.
+- **target-scope:** "how far down I'm allowed to look." When resolving **this** route's gateway, RouterOS only uses routes whose **scope ≤ my target-scope**.
+
+**Analogy:** asking for directions. `target-scope` is how far you're willing to trust someone, and `scope` is how trusted each person is. You only accept directions from someone whose trust level is within your limit.
+
+| Route | Default scope | Default target-scope | Meaning |
+|---|---|---|---|
+| Connected (`DAc`) | 10 | n/a | Directly attached; the most trusted |
+| Static | 30 | **10** | Its gateway must be on a **connected** network (scope 10) |
+| OSPF | 20 | 10 | |
+| iBGP | 40 | 30 | Next hop can be found through static or IGP routes |
+
+**Why the recursive example works:**
+1. The default route's gateway is `8.8.8.8`, which is **not** on a connected network.
+2. With the default `target-scope=10`, RouterOS would only look at scope-10 routes. The host route `8.8.8.8/32` has default scope 30, so it **wouldn't** be used and the default route would stay inactive.
+3. So we set the host route to `scope=10` and the default route to `target-scope=11`. Now `10 ≤ 11`, so the host route is allowed to resolve `8.8.8.8`. The default route goes **recursively** through `8.8.8.8/32` to `192.168.1.1`.
+
+Check it with `/ip route print detail`. The active default shows `immediate-gw`, the real next hop it resolved to.
+
+---
+
+## 3b. /32 point-to-point addressing (MTCRE)
+
+### What is it?
+
+Normally a link between two routers uses a **/30** subnet: 4 addresses, of which only 2 are usable. **/32 addressing** gives each router **one** address and tells it directly which single address is on the other side.
+
+```
+/30 way:  R1 10.0.12.1/30 ---- R2 10.0.12.2/30   (uses 10.0.12.0–3, 4 addresses)
+/32 way:  R1 10.0.0.1/32  ---- R2 10.0.0.2/32    (uses only the 2 addresses)
+```
+
+### Why use it
+
+- Saves addresses: important with public IPs, where every address costs money.
+- Common with ISPs, PPP links and some MTCRE scenarios.
+
+### /30 vs /32
+
+| | /30 | /32 with `network=` |
+|---|---|---|
+| Addresses used | 4 | 2 |
+| Config | Simple, works everywhere | Must set `network=` (the peer IP) |
+| Neighbor in the same subnet? | Yes | No, so the **network** field tells the router where the peer is |
+
+### Config
+
+🖱️ **WinBox:** IP → Addresses → **+**:
+
+| Router | Address | Network | Interface |
+|---|---|---|---|
+| R1 | `10.0.0.1` | `10.0.0.2` | `ether3` |
+| R2 | `10.0.0.2` | `10.0.0.1` | `ether1` |
+
+⌨️ **CLI:**
+```
+# R1
+/ip address add address=10.0.0.1/32 network=10.0.0.2 interface=ether3
+# R2
+/ip address add address=10.0.0.2/32 network=10.0.0.1 interface=ether1
+```
+
+RouterOS creates a connected route to the peer address (`10.0.0.2/32` on R1), so you can use it as a gateway: `/ip route add dst-address=10.2.0.0/24 gateway=10.0.0.2`.
+
+**Verify:** 🖱️ IP → Routes shows `10.0.0.2` as **DAc**. ⌨️ `/ping 10.0.0.2`
+
 ---
 
 ## 4. Load balancing (ECMP)
@@ -200,6 +272,114 @@ R1 (LAN 10.1.0.0/24) --10.0.12.0/30-- R2 (LAN 10.2.0.0/24)
 ```
 
 Routes must exist **in both directions**.
+
+---
+
+## 7. VRRP: a backup gateway (MTCRE)
+
+### What is it?
+
+Every PC on a LAN has **one** default gateway, say `192.168.10.1`. If that router dies, the whole LAN loses the internet, even if you have a second router.
+
+**VRRP (Virtual Router Redundancy Protocol)** lets two or more routers **share one virtual gateway IP**. One router is the **Master** and answers for that IP; the others are **Backup**. If the master dies, a backup takes over the IP within a few seconds. The PCs never notice, because their gateway IP never changes.
+
+**Analogy:** a shop with one public phone number. Normally the manager answers. If the manager is out, the call automatically rings the assistant. Customers always dial the same number.
+
+### Key terms
+
+| Term | Meaning |
+|---|---|
+| **VRID** | Virtual router ID (1–255). It must be the **same** on all routers in the group. |
+| **Virtual IP** | The shared gateway IP that PCs use |
+| **Priority** | 1–254, default 100. The **highest** priority becomes master. |
+| **Preemption** | When the original master comes back, it takes over again (on by default) |
+
+### VRRP vs two gateways vs routing protocols
+
+| | Two routers, no VRRP | VRRP | OSPF / BGP |
+|---|---|---|---|
+| Protects | Nothing: PCs still point to one gateway | The **LAN gateway** | **Paths between routers** |
+| PC config changes on failure | Manual | None | n/a (PCs don't run OSPF) |
+| Typical use | n/a | Two edge routers serving one LAN | Router-to-router redundancy |
+
+### Lab design
+
+```
+                 (internet / Cloud0)
+                  |               |
+                 R1               R2
+            ether2 .2         ether2 .3
+                  \               /
+                 LAN 192.168.10.0/24 (switch)
+                         |
+                        PC1  gateway = 192.168.10.1 (virtual)
+```
+
+| | R1 (master) | R2 (backup) |
+|---|---|---|
+| Real LAN IP | `192.168.10.2/24` | `192.168.10.3/24` |
+| VRID | 10 | 10 |
+| Priority | **200** | 100 |
+| Virtual IP | `192.168.10.1` | `192.168.10.1` |
+
+### Step 1: real IPs (each router)
+
+🖱️ **WinBox:** IP → Addresses → **+** → `192.168.10.2/24` (R1) or `192.168.10.3/24` (R2) on `ether2`
+
+⌨️ **CLI:**
+```
+/ip address add address=192.168.10.2/24 interface=ether2     # R2: 192.168.10.3/24
+```
+
+### Step 2: VRRP interface
+
+🖱️ **WinBox:** Interfaces → **+** → **VRRP**:
+- Name `vrrp10`
+- Interface `ether2`
+- VRID `10`
+- Priority `200` (R1) or `100` (R2)
+
+⌨️ **CLI:**
+```
+/interface vrrp add name=vrrp10 interface=ether2 vrid=10 priority=200    # R2: priority=100
+```
+
+### Step 3: virtual IP on the VRRP interface (as /32)
+
+🖱️ **WinBox:** IP → Addresses → **+** → Address `192.168.10.1/32`, Interface `vrrp10` (same on both routers)
+
+⌨️ **CLI:**
+```
+/ip address add address=192.168.10.1/32 interface=vrrp10
+```
+
+### Step 4: firewall
+
+VRRP routers send "I'm alive" adverts to each other. Allow them on input:
+
+🖱️ **WinBox:** Filter Rules → **+** → Chain `input`, Protocol `vrrp`, Action `accept`. Drag it above the drop rule.
+
+⌨️ **CLI:**
+```
+/ip firewall filter add chain=input protocol=vrrp action=accept place-before=[find comment="IN: drop all not from LAN"]
+```
+
+### Step 5: DHCP and NAT
+
+Give clients the **virtual IP** as their gateway: `gateway=192.168.10.1` in the DHCP network. Run DHCP on only **one** router, or split the pool between both. Each router needs its own masquerade.
+
+### Verify and test failover
+
+| Check | 🖱️ WinBox | ⌨️ CLI |
+|---|---|---|
+| Who is master | Interfaces → `vrrp10` (**M** flag / running on master only) | `/interface vrrp print` |
+| Virtual IP active | IP → Addresses (active only on master) | `/ip address print` |
+
+Test:
+1. Run a continuous ping from PC1 to 8.8.8.8.
+2. Disable R1's `ether2`, or shut R1 down.
+3. R2 becomes master and the ping recovers after a few lost packets.
+4. Re-enable R1. With preemption, it takes the master role back.
 
 ---
 
