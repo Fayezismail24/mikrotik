@@ -187,10 +187,49 @@ Click **OK**, then go to the **Users** tab and add a user with group `noc`.
 
 ## 7. Backups
 
-| Type | Format | Notes |
+### What is a Backup (`.backup`)?
+
+A **backup** is a full **snapshot** of the router's configuration in one binary file.
+
+**Analogy: a phone cloud backup.** You restore it and everything comes back exactly as it was, but you can't open it and read it.
+
+- **Contains:** the whole configuration, **users and passwords**, certificates, and hardware-specific details such as interface MACs.
+- **Limits:**
+  - Not readable.
+  - Meant for the **same** router or model; restoring onto different hardware can break things.
+  - **All or nothing**: you can't restore just one part.
+
+### What is an Export (`.rsc`)?
+
+An **export** is your configuration written as **the CLI commands** that would build it, in a plain text file.
+
+**Analogy: a recipe.** You can read it, copy one part, edit it, and cook it again on a different router.
+
+- **Contains:**
+  - Every setting, as commands (`/ip address add ...`).
+  - By default, only what you changed from the factory defaults.
+  - **No passwords** unless you add `show-sensitive`, so it's safe to share for help.
+- **Strengths:**
+  - Readable.
+  - Portable to other models.
+  - Partial exports are possible (`/ip firewall export`).
+  - Easy to compare over time, for example in Git.
+
+### Backup vs Export
+
+| | Backup `.backup` | Export `.rsc` |
 |---|---|---|
-| **Binary backup** | `.backup` | Full restore on the **same** device or model. Includes users and passwords. Not readable. |
-| **Export** | `.rsc` text | Readable and portable. Passwords are hidden unless you add `show-sensitive`. |
+| Analogy | Phone cloud backup | Recipe |
+| Format | Binary, unreadable | Plain text CLI commands |
+| Passwords and users | ✅ Included | ❌ Hidden (unless `show-sensitive`) |
+| Restore to a **different** model | ⚠️ Risky | ✅ Yes (adjust interface names) |
+| Restore just one part | ❌ All or nothing | ✅ Copy the part you need |
+| Read or compare changes | ❌ | ✅ |
+| Restore speed | ✅ One click, exact | Slower, runs line by line |
+| How to restore | Files → Restore (reboots) | `/import file-name=...` |
+| Best for | Fast recovery on the **same** router | Documentation, migration, sharing, templates |
+
+**Rule:** take **both**. When R1 breaks, restore the `.backup`. When you replace R1 with different hardware or want to read or share the config, use the `.rsc`.
 
 ### 7.1 Binary backup
 
@@ -204,6 +243,8 @@ Click **Backup**. The file appears in the Files list.
 ```
 /system backup save name=R1-2026-10-14 password="BackupPass"
 ```
+
+*Why a password?* The backup contains your user passwords. With a password the file is encrypted, so a leaked file is useless.
 
 ### 7.2 Export (text config)
 
@@ -221,12 +262,16 @@ Click **Backup**. The file appears in the Files list.
 
 🖱️ **WinBox:** **Files** → drag the file onto your desktop.
 
+*Why?* A backup that only lives on the router is lost along with the router. Open both files in Notepad: the `.backup` is unreadable binary, and the `.rsc` is clear commands. That's the difference in one look.
+
 ⌨️ **CLI (from Windows):**
 ```bash
 scp yourname@192.168.1.133:R1-config.rsc .
 ```
 
 ### 7.4 Restore
+
+*Why test it?* A backup you've never restored is just a hope. Test: change the identity to `TEST`, restore, and confirm it's back to `R1`. The router reboots because a backup replaces the **whole** config at once.
 
 🖱️ **WinBox:**
 - **Binary:** **Files** → select the `.backup` → **Restore** → enter the password. The router reboots.
