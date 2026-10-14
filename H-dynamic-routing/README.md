@@ -1,6 +1,8 @@
 # H. Dynamic Routing: OSPF and BGP
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** MTCRE (OSPF) · 🔹 BGP is beyond MTCRE (MTCINE)
 
 ## Concept
 
@@ -141,6 +143,148 @@ You can also match by subnet with the template's **Networks** field (`networks=1
 | No neighbor | Area, subnet, network type or MTU mismatch. Firewall blocks protocol 89. Interface passive by mistake. |
 | Stuck in ExStart | MTU mismatch. |
 | Neighbor Full but no routes | LANs not in any template, or no redistribute. |
+
+---
+
+## Part 1b: OSPF in depth (MTCRE)
+
+### Why multiple areas?
+
+In one big area, **every** router stores **every** link of the whole network and recalculates every time any link flaps. That's fine for 5 routers, but heavy for 200.
+
+**Areas** split the network into neighborhoods. Inside an area, routers know every detail. Between areas, they only exchange **summaries**.
+
+**Analogy:** a country's postal system. Local post offices know every street in their city (one area). The national hub (area 0) only needs to know which city each postcode belongs to.
+
+### Router roles
+
+| Role | Meaning |
+|---|---|
+| **Internal router** | All interfaces in one area |
+| **Backbone router** | Has an interface in **area 0** |
+| **ABR** (Area Border Router) | Connects area 0 to another area, and summarizes between them |
+| **ASBR** (AS Boundary Router) | Brings **outside** routes into OSPF (redistributing static, connected or BGP) |
+
+**Rule:** every area must touch **area 0**. Non-backbone areas talk to each other **through** area 0.
+
+### LSA types (what routers tell each other)
+
+| Type | Name | Sent by | Travels | Describes |
+|---|---|---|---|---|
+| 1 | Router LSA | Every router | Its own area only | "My links and their costs" |
+| 2 | Network LSA | The DR on a broadcast segment | Own area | "Routers on this shared segment" |
+| 3 | Summary LSA | ABR | Into other areas | "Networks from another area" |
+| 4 | ASBR Summary | ABR | Into other areas | "How to reach the ASBR" |
+| 5 | External LSA | ASBR | Whole OSPF domain (not stub areas) | "Outside routes (static, connected, BGP)" |
+| 7 | NSSA External | ASBR inside an NSSA | Only the NSSA (the ABR converts it to type 5) | "Outside routes from inside an NSSA" |
+
+### Area types
+
+| Area type | Gets type 3 (inter-area)? | Gets type 5 (external)? | Can have an ASBR inside? | Use |
+|---|---|---|---|---|
+| **Standard** | ✅ | ✅ | ✅ | Default |
+| **Stub** | ✅ | ❌ Replaced by a default route | ❌ | Branches that only need "go to the ABR for outside" |
+| **Totally stubby** (stub + no-summaries) | ❌ Only a default | ❌ | ❌ | Smallest routing tables |
+| **NSSA** | ✅ | ❌ | ✅ (as type 7) | A stub area that still connects to an outside network |
+
+**Why stub areas?** Fewer routes means less memory and CPU on small branch routers. The branch just needs a default route to the ABR.
+
+### Multi-area lab
+
+```
+  Area 0 (backbone)            Area 1 (stub)
+R1 ether2 ---- ether1 R2 ether2 ---- ether1 R3
+10.0.12.0/30   (ABR)       10.0.23.0/30
+```
+
+R2 is the **ABR**. R3 is in a **stub** area.
+
+**R1**: everything in area 0, as in Part 1.
+
+**R2 (ABR): two areas**
+
+🖱️ **WinBox:**
+1. Routing → OSPF → **Areas** → **+** `backbone` (`0.0.0.0`) and **+** `area1` (`0.0.0.1`, Type `stub`).
+2. **Interface Templates**:
+   - `ether1` in `backbone`, type `ptp`.
+   - `ether2` in `area1`, type `ptp`.
+
+⌨️ **CLI:**
+```
+/routing ospf instance add name=ospf1 version=2 router-id=2.2.2.2
+/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1
+/routing ospf area add name=area1 area-id=0.0.0.1 instance=ospf1 type=stub
+/routing ospf interface-template add area=backbone interfaces=ether1 type=ptp
+/routing ospf interface-template add area=area1 interfaces=ether2 type=ptp
+/routing ospf interface-template add area=backbone interfaces=lo passive
+```
+
+**R3: in area 1 only** (the area type must match: **stub** on both R2 and R3)
+
+🖱️ **WinBox:** Areas → **+** `area1` (`0.0.0.1`, Type `stub`). Interface Templates: `ether1` (ptp), and `ether3`, `lo` (passive), all in `area1`.
+
+⌨️ **CLI:**
+```
+/routing ospf instance add name=ospf1 version=2 router-id=3.3.3.3
+/routing ospf area add name=area1 area-id=0.0.0.1 instance=ospf1 type=stub
+/routing ospf interface-template add area=area1 interfaces=ether1 type=ptp
+/routing ospf interface-template add area=area1 interfaces=ether3,lo passive
+```
+
+**Totally stubby:** on the **ABR (R2)** only, block type 3 as well:
+
+🖱️ **WinBox:** Areas → `area1` → No Summaries ✓
+
+⌨️ **CLI:**
+```
+/routing ospf area set area1 no-summaries=yes
+```
+
+### Area ranges (summarization on the ABR)
+
+Advertise **one** summary instead of many small networks:
+
+🖱️ **WinBox:** Routing → OSPF → **Area Ranges** → **+** → Area `area1`, Prefix `10.3.0.0/16`, Advertise ✓
+
+⌨️ **CLI:**
+```
+/routing ospf area range add area=area1 prefix=10.3.0.0/16 advertise=yes
+```
+
+### Redistribution (making a router an ASBR)
+
+Bring non-OSPF routes (static, connected, BGP) into OSPF as **external** (type 5) routes:
+
+🖱️ **WinBox:** Routing → OSPF → **Instances** → `ospf1` → Redistribute: `static`, `connected`
+
+⌨️ **CLI:**
+```
+/routing ospf instance set ospf1 redistribute=static,connected
+```
+
+Default route options on the instance (**Originate Default**):
+
+| Value | Meaning |
+|---|---|
+| `never` | Don't advertise a default route |
+| `if-installed` | Advertise a default only if this router has one (e.g. from DHCP) |
+| `always` | Always advertise a default, even without one (careful: black-holes traffic if there's no internet) |
+
+### Verify multi-area
+
+| Check | 🖱️ WinBox | ⌨️ CLI |
+|---|---|---|
+| LSAs by type | Routing → OSPF → LSAs (Type column) | `/routing ospf lsa print` |
+| R3 only has a default + intra-area routes | IP → Routes on R3 | `/ip route print where ospf` |
+| Area type | Routing → OSPF → Areas | `/routing ospf area print` |
+
+**Expected on R3 (stub):** no type-5 external routes, just a **default route** from R2. With totally stubby, inter-area routes disappear too, leaving only the default.
+
+### Quick check
+
+1. Why must every area connect to area 0?
+2. What's the difference between an ABR and an ASBR?
+3. Which LSA type disappears in a stub area, and what replaces it?
 
 ---
 
