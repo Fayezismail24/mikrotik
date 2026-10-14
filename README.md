@@ -35,7 +35,7 @@ WinBox paths follow WinBox 4 on RouterOS 7. Untested sections may have small men
 | F | [NAT](F-nat/) | Masquerade, port forwarding, hairpin, netmap | 📝 |
 | G | [Static routing](G-static-routing/) | Routes, failover, recursive, ECMP, PBR | 📝 |
 | H | [Dynamic routing](H-dynamic-routing/) | OSPF, BGP (v7 syntax), routing filters | 📝 |
-| I | [Wireless and CAPsMAN](I-wireless-capsman/) | wifi vs. wireless packages, AP, CAPsMAN | 📝 (needs hardware) |
+| I | [Wireless and CAPsMAN](I-wireless-capsman/) | wifi vs. wireless packages, AP, CAPsMAN | 📝 (hAP available) |
 | J | [VPN](J-vpn/) | WireGuard, IPsec IKEv2, L2TP/IPsec, SSTP | 📝 |
 | K | [QoS](K-qos/) | Simple queues, PCQ, mangle + queue tree, CAKE | 📝 |
 | L | [Hotspot and PPPoE](L-hotspot-pppoe/) | Captive portal, User Manager, PPPoE server/client | 📝 |
@@ -53,6 +53,7 @@ WinBox paths follow WinBox 4 on RouterOS 7. Untested sections may have small men
 | EVE-NG host | `192.168.1.131` |
 | RouterOS | CHR 7.24.5 |
 | Home LAN ("internet" for labs) | `192.168.1.0/24` via Cloud0 / pnet0 |
+| Physical hardware | MikroTik hAP at home (model TBD), used for [I. Wireless and CAPsMAN](I-wireless-capsman/) |
 
 ## Suggested learning order
 

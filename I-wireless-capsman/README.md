@@ -1,6 +1,6 @@
 # I. Wireless and CAPsMAN
 
-> **Status:** 📝 Not yet tested. **CHR has no wireless hardware**, so this section needs a physical MikroTik (hAP, cAP, etc.).
+> **Status:** 📝 Not yet tested. Hardware available: a hAP at home (model to be confirmed). CHR has no wireless hardware, so the Wi-Fi radios in this section come from the hAP.
 
 ## Concept
 
@@ -21,7 +21,69 @@ RouterOS 7 has **two wireless drivers**:
 /interface print where type~"wifi|wlan"
 ```
 
+### Which package does my hAP use?
+
+It depends on the Wi-Fi chip, which depends on the model:
+
+| hAP model | Wi-Fi generation | Package | WinBox menu |
+|---|---|---|---|
+| hAP ax lite, hAP ax², hAP ax³, hAP ax S | Wi-Fi 6 | **wifi** (new) | **WiFi** |
+| hAP ac², hAP ac³, hAP ac lite | Wi-Fi 5 | **wireless** (legacy) | **Wireless** |
+| hAP lite, hAP mini | Wi-Fi 4 (2.4 GHz only) | **wireless** (legacy) | **Wireless** |
+
+Find the model and version:
+
+🖱️ **WinBox:** System → **RouterBOARD** (model) and System → **Resources** (version, board name)
+
+⌨️ **CLI:**
+```
+/system routerboard print
+/system resource print
+/system package print
+```
+
 **CAPsMAN** gives central management of many APs. The **controller** holds the config, and each **CAP** (access point) receives it.
+
+---
+
+## Before you start: if the hAP is your home router
+
+If your family's internet and Wi-Fi run through this hAP, one wrong setting takes the house offline. Protect it first.
+
+**1. Take a backup and an export, and download both to your PC** (see [B. Basics § 7](../B-basics/)):
+
+🖱️ **WinBox:** Files → **Backup** (with a password). Then in New Terminal run `/export file=hap-before-lab`. Drag both files to your desktop.
+
+⌨️ **CLI:**
+```
+/system backup save name=hap-before-lab password="YourPass"
+/export file=hap-before-lab show-sensitive
+```
+
+**2. Use Safe Mode for every change.** 🖱️ the **Safe Mode** button / ⌨️ `Ctrl+X`. If you lose the connection, the changes roll back.
+
+**3. Don't change the main SSID.** Add a separate **test SSID** (a virtual AP, see "Guest network" below) and experiment on that. The family keeps their normal Wi-Fi.
+
+**4. Know your way back.**
+- 🖱️ Files → select `hap-before-lab.backup` → **Restore**.
+- ⌨️ `/system backup load name=hap-before-lab.backup`
+
+If WinBox is unreachable, connect a cable to a LAN port and use **MAC WinBox** from the Neighbors tab.
+
+---
+
+## Lab plan: CHR controller + real hAP
+
+```
+EVE-NG (VMware)                         Home LAN 192.168.1.0/24
+  R1 (CHR) ether1 --- Cloud0/pnet0 --- home switch/router --- hAP (CAP)
+  192.168.1.133                                              192.168.1.x
+```
+
+- **R1 (CHR)** runs the **CAPsMAN controller**. CHR can be a controller; it just has no radios of its own.
+- **The hAP** runs as a **CAP**. It finds R1 over the home LAN and gets its Wi-Fi config from it.
+- Use the CAPsMAN type that matches the hAP's package: **wifi** CAPsMAN (Part 3) or legacy CAPsMAN (Part 4). The controller and CAP must use the same type.
+- If the hAP is the main home router, enabling CAP mode hands its radios to R1, which **replaces** its current Wi-Fi config. Do this only after the backup above, and preferably on a spare device or a test SSID.
 
 ---
 
