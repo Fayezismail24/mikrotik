@@ -1,6 +1,8 @@
 # J. VPN: WireGuard, IPsec, L2TP, SSTP
 
 > **Status:** 📝 Not yet tested in lab
+>
+> **Cert:** MTCNA module 8 (Tunnels) · MTCRE (tunnels) · MTCSE (VPN security)
 
 ## Concept
 
@@ -324,6 +326,121 @@ RouterOS 7.11+ can print a ready-made client config. Run this in New Terminal:
 /ppp secret add name=fayez-sstp password="UserPass!" service=sstp profile=l2tp-prof
 /ip firewall filter add chain=input protocol=tcp dst-port=443 action=accept place-before=[find comment="IN: drop all not from LAN"]
 ```
+
+---
+
+## 6. Plain tunnels: EoIP, IPIP, GRE (MTCNA + MTCRE)
+
+### What is a tunnel?
+
+A **tunnel** wraps (encapsulates) one packet inside another so it can cross a network that wouldn't carry it directly.
+
+**Analogy:** putting a letter inside a second envelope addressed to the remote office. The post only reads the outer envelope, and the remote office opens it and delivers the inner letter locally.
+
+> These tunnels are **not encrypted** on their own. For privacy, add IPsec with the `ipsec-secret` option, or use WireGuard.
+
+### EoIP vs IPIP vs GRE vs WireGuard
+
+| | **EoIP** | **IPIP** | **GRE** | **WireGuard** |
+|---|---|---|---|---|
+| Carries | **Layer 2** (Ethernet frames) | Layer 3 (IPv4 only) | Layer 3 (IPv4, multicast...) | Layer 3 |
+| Standard | MikroTik-only | RFC 2003, works with any vendor | RFC 2784, works with any vendor | Open standard |
+| Can be bridged | ✅ Yes: both sites on **one LAN** | ❌ | ❌ | ❌ |
+| OSPF over it | ✅ | ⚠️ No multicast | ✅ Multicast works | ✅ |
+| Encryption | ❌ (`ipsec-secret` optional) | ❌ (`ipsec-secret` optional) | ❌ (`ipsec-secret` optional) | ✅ Built in |
+| Firewall protocol | GRE (47) | IP-in-IP (4) | GRE (47) | UDP port |
+| Use when | You want two sites on the **same L2 network**, MikroTik on both ends | Simple L3 link to any vendor | L3 link to any vendor, with routing protocols | Secure modern VPN |
+
+**Key idea, L2 vs L3:** with **EoIP**, both sites act as if they're plugged into **one switch**: same subnet, broadcasts, even DHCP from one side. With **IPIP/GRE**, each site keeps its **own subnet** and you **route** between them.
+
+### 6.1 EoIP (L2: bridge two sites)
+
+Both routers need a tunnel with the **same Tunnel ID** and each other's public IP.
+
+🖱️ **WinBox:** Interfaces → **+** → **EoIP Tunnel**:
+
+| Field | R1 | R2 |
+|---|---|---|
+| Name | `eoip-R2` | `eoip-R1` |
+| Local Address | `192.168.1.133` | `192.168.1.134` |
+| Remote Address | `192.168.1.134` | `192.168.1.133` |
+| Tunnel ID | `10` | `10` |
+
+Then Bridge → **Ports** → **+** → the EoIP interface on the LAN bridge.
+
+⌨️ **CLI (R1):**
+```
+/interface eoip add name=eoip-R2 local-address=192.168.1.133 remote-address=192.168.1.134 tunnel-id=10
+/interface bridge port add bridge=bridge1 interface=eoip-R2
+```
+
+⌨️ **CLI (R2):**
+```
+/interface eoip add name=eoip-R1 local-address=192.168.1.134 remote-address=192.168.1.133 tunnel-id=10
+/interface bridge port add bridge=bridge1 interface=eoip-R1
+```
+
+Now a PC on R2's LAN can get DHCP from R1, because it's the same L2 network.
+
+### 6.2 IPIP (L3: route between sites)
+
+🖱️ **WinBox:** Interfaces → **+** → **IP Tunnel** → Name `ipip-R2`, Local Address `192.168.1.133`, Remote Address `192.168.1.134` → OK. Then:
+- IP → Addresses: `10.254.0.1/30` on `ipip-R2` (`.2` on R2).
+- IP → Routes: the remote LAN via `10.254.0.2`.
+
+⌨️ **CLI (R1):**
+```
+/interface ipip add name=ipip-R2 local-address=192.168.1.133 remote-address=192.168.1.134
+/ip address add address=10.254.0.1/30 interface=ipip-R2
+/ip route add dst-address=192.168.20.0/24 gateway=10.254.0.2
+```
+
+R2 mirrors it: swap the addresses, use `10.254.0.2/30`, and route to `192.168.10.0/24`.
+
+### 6.3 GRE (L3, multicast-capable)
+
+🖱️ **WinBox:** Interfaces → **+** → **GRE Tunnel** → Name `gre-R2`, Local / Remote Address. Then add an IP and a route, as with IPIP.
+
+⌨️ **CLI (R1):**
+```
+/interface gre add name=gre-R2 local-address=192.168.1.133 remote-address=192.168.1.134
+/ip address add address=10.254.1.1/30 interface=gre-R2
+```
+
+Run OSPF over GRE by adding `gre-R2` to an OSPF interface template ([H](../H-dynamic-routing/)).
+
+### Adding encryption (IPsec) to any of these
+
+🖱️ **WinBox:** double-click the tunnel → **IPsec Secret** `TunnelKey!` (same on both sides)
+
+⌨️ **CLI:**
+```
+/interface gre set gre-R2 ipsec-secret="TunnelKey!"
+```
+
+RouterOS then builds the IPsec peer and policy automatically. Allow UDP 500/4500 and ESP in the firewall (see section 3).
+
+### Firewall for plain tunnels
+
+🖱️ **WinBox:** Filter Rules → **+** → Chain `input`, Protocol `gre` (or `ipencap` for IPIP), Src. Address = the other router → Action `accept`. Drag it above the drop rule.
+
+⌨️ **CLI:**
+```
+/ip firewall filter add chain=input protocol=gre src-address=192.168.1.134 action=accept place-before=[find comment="IN: drop all not from LAN"]
+/ip firewall filter add chain=input protocol=ipencap src-address=192.168.1.134 action=accept place-before=[find comment="IN: drop all not from LAN"]
+```
+
+### Tunnel MTU
+
+Every tunnel adds headers, so the usable MTU drops (e.g. 1500 → about 1458 for EoIP). If big pages or file transfers hang, set the tunnel MTU lower or clamp TCP MSS. On EoIP, try `/interface eoip set eoip-R2 mtu=1400` and test.
+
+### Verify tunnels
+
+| Check | 🖱️ WinBox | ⌨️ CLI |
+|---|---|---|
+| Tunnel is running (R flag) | Interfaces | `/interface print where type~"eoip\|ipip\|gre"` |
+| Traffic through it | Interfaces → Tx/Rx on the tunnel | `/interface monitor-traffic gre-R2` |
+| Ping across | Tools → Ping → `10.254.0.2` | `/ping 10.254.0.2` |
 
 ---
 
