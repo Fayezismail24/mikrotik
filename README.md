@@ -5,19 +5,29 @@ A complete, hands-on MikroTik RouterOS v7 guide, from first boot to advanced rou
 ## How each section is organized
 
 1. **Concept:** what it is and when to use it.
-2. **CLI:** RouterOS v7 commands, ready to paste.
-3. **WinBox / EVE-NG lab:** a topology and step-by-step exercise.
-4. **Verify:** commands that prove it works.
+2. **Config steps:** every step shows **both** ways to do it:
+   - 🖱️ **WinBox:** the menu path and the fields to fill.
+   - ⌨️ **CLI:** the RouterOS v7 command, ready to paste.
+3. **EVE-NG lab:** a topology and step-by-step exercise.
+4. **Verify:** a table of where to look in WinBox and which `print` command to run.
 5. **Troubleshooting:** common mistakes and fixes.
 
-**Status:** ✅ Tested in lab · 📝 Written, not yet tested
+Example:
+
+> 🖱️ **WinBox:** IP → Addresses → **+** → Address `192.168.10.1/24`, Interface `ether2` → OK
+>
+> ⌨️ **CLI:** `/ip address add address=192.168.10.1/24 interface=ether2`
+
+**Status:** ✅ Tested in lab · 🔄 Partly tested · 📝 Written, not yet tested
+
+WinBox paths follow WinBox 4 on RouterOS 7. Untested sections may have small menu differences until verified in the lab.
 
 ## Contents
 
 | | Section | Topics | Status |
 |---|---|---|---|
 | A | [Lab setup](A-lab-setup/) | EVE-NG, CHR image, first boot, Cloud0, VPCS | ✅ |
-| B | [Basics](B-basics/) | CLI, WinBox, users, NTP, backups, upgrades, reset | 📝 |
+| B | [Basics](B-basics/) | CLI, WinBox, users, NTP, backups, upgrades, reset | 🔄 |
 | C | [Addressing](C-addressing/) | IP, DHCP client/server, DNS, ARP | 📝 |
 | D | [Bridging and VLANs](D-bridging-vlans/) | Bridge, VLAN filtering, access/trunk, inter-VLAN | 📝 |
 | E | [Firewall](E-firewall/) | Chains, conntrack, base ruleset, address lists, brute-force | 📝 |
@@ -32,7 +42,7 @@ A complete, hands-on MikroTik RouterOS v7 guide, from first boot to advanced rou
 | N | [Scripting](N-scripting/) | Language basics, scheduler, backup scripts, REST API | 📝 |
 | O | [Security hardening](O-security-hardening/) | Services, users, MAC access, device-mode, audit | 📝 |
 
-📄 **[Cheatsheet](cheatsheet.md)**: the most-used commands on one page.
+📄 **[Cheatsheet](cheatsheet.md)**: the most-used tasks on one page, each with its WinBox path and CLI command.
 
 ## Lab environment
 
