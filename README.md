@@ -47,6 +47,7 @@ WinBox paths follow WinBox 4 on RouterOS 7. Untested sections may have small men
 | N | [Scripting](N-scripting/) | Language basics, scheduler, backup scripts, REST API | 🔹 Beyond | 📝 |
 | O | [Security hardening](O-security-hardening/) | Services, users, MAC access, device-mode, audit | MTCSE | 📝 |
 | 🧪 | [Labs](labs/) | Complete hands-on EVE-NG exercises combining several sections. Lab 1: DHCP server, bridge and NAT | MTCNA | 🔄 |
+| 🧠 | [Q&A](qa/) | Follow-up "what if / why" questions and answers for each lab | MTCNA | 🔄 |
 
 📄 **[Cheatsheet](cheatsheet.md)**: the most-used tasks on one page, each with its WinBox path and CLI command.
 
