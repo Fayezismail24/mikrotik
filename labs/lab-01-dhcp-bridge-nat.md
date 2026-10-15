@@ -17,7 +17,7 @@ One CHR router (R1) that:
 
 ## Topology
 
-![Lab 1 topology: home_lan 192.168.1.0/24 with home router and R1 ether1, lan 192.168.2.0/24 on bridge1 with VPC1-VPC4](img/lab-01-topology.svg)
+![Lab 1 topology: home router, Cloud0, R1 (ether1 DHCP client, NAT), bridge1 192.168.2.1/24 with DHCP server and VPC1-VPC4 on ether2-ether5](img/lab-01-topology.svg)
 
 <details><summary>Text version</summary>
 
