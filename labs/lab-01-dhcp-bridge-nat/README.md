@@ -2,7 +2,7 @@
 
 > **Cert:** MTCNA modules 2 (DHCP), 3 (Bridging) and 6 (NAT) · **Status:** ✅ Tested in lab
 
-[Labs index](README.md) · [Back to the main index](../README.md)
+[Labs index](../README.md) · [Back to the main index](../../README.md) · [Follow-up Q&A](qa.md)
 
 ---
 
@@ -17,7 +17,7 @@ One CHR router (R1) that:
 
 ## Topology
 
-![Lab 1 topology: home router, Cloud0, R1 (ether1 DHCP client, NAT), bridge1 192.168.2.1/24 with DHCP server and VPC1-VPC4 on ether2-ether5](img/lab-01-topology-v2.svg)
+![Lab 1 topology: home router, Cloud0, R1 (ether1 DHCP client, NAT), bridge1 192.168.2.1/24 with DHCP server and VPC1-VPC4 on ether2-ether5](topology.svg)
 
 <details><summary>Text version</summary>
 
@@ -246,4 +246,4 @@ Watch DHCP live while a VPC runs `ip dhcp`:
 
 ---
 
-**More:** [Lab 1 follow-up Q&A](../qa/lab-01-qa.md): deeper "what if / why" questions with answers.
+**More:** [Lab 1 follow-up Q&A](qa.md): deeper "what if / why" questions with answers.

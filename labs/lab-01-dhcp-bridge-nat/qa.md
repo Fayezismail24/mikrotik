@@ -1,8 +1,8 @@
 # Lab 1 Q&A: DHCP Server, Bridge and NAT
 
-> Follow-up "what if / why" questions from reviewing [Lab 1](../labs/lab-01-dhcp-bridge-nat.md). Try each one before opening the answer.
+> Follow-up "what if / why" questions from reviewing [Lab 1](README.md). Try each one before opening the answer.
 
-[Q&A index](README.md) · [Lab 1](../labs/lab-01-dhcp-bridge-nat.md) · [Back to the main index](../README.md)
+[Lab 1](README.md) · [Labs index](../README.md) · [Back to the main index](../../README.md)
 
 ---
 
