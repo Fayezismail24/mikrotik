@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="440" viewBox="0 0 680 440" role="img" aria-labelledby="title desc">
+  <title id="title">Lab 1 topology: DHCP server, bridge and NAT</title>
+  <desc id="desc">Two subnets. home_lan 192.168.1.0/24 (via EVE-NG Cloud0) holds the home router .1 and R1 ether1 .133 (DHCP client). lan 192.168.2.0/24 on R1 bridge1 .1 (DHCP server, pool .2-.10) holds VPC1-VPC4 on ether2-ether5. R1 does NAT masquerade out ether1.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .h { font-size: 14px; font-weight: 600; }
+    .s { font-size: 12px; fill: #5F5E5A; }
+    .wire { stroke: #888780; stroke-width: 1.2; }
+    .gray rect { fill: #F1EFE8; stroke: #5F5E5A; }
+    .gray text { fill: #444441; }
+    .purple rect { fill: #EEEDFE; stroke: #534AB7; }
+    .purple .h { fill: #3C3489; }
+    .purple .s { fill: #534AB7; }
+    .teal rect { fill: #E1F5EE; stroke: #0F6E56; }
+    .teal text { fill: #085041; }
+    @media (prefers-color-scheme: dark) {
+      .s { fill: #B4B2A9; }
+      .wire { stroke: #B4B2A9; }
+      .gray rect { fill: #444441; stroke: #B4B2A9; }
+      .gray text { fill: #F1EFE8; }
+      .purple rect { fill: #3C3489; stroke: #AFA9EC; }
+      .purple .h { fill: #EEEDFE; }
+      .purple .s { fill: #CECBF6; }
+      .teal rect { fill: #085041; stroke: #5DCAA5; }
+      .teal text { fill: #E1F5EE; }
+    }
+  </style>
+
+  <!-- home LAN subnet bar -->
+  <g class="gray"><rect x="40" y="40" width="600" height="28" rx="4" stroke-width="0.8"/>
+    <text class="h" x="56" y="59">home_lan · 192.168.1.0/24 (via Cloud0)</text></g>
+
+  <line class="wire" x1="150" y1="68" x2="150" y2="110"/>
+  <text class="s" x="160" y="94">.1</text>
+  <g class="gray"><rect x="80" y="110" width="140" height="44" rx="6" stroke-width="0.8"/>
+    <text class="h" x="150" y="137" text-anchor="middle">Home router</text></g>
+
+  <line class="wire" x1="340" y1="68" x2="340" y2="180"/>
+  <text class="s" x="350" y="112">ether1 · .133 (DHCP client)</text>
+  <g class="purple"><rect x="260" y="180" width="160" height="56" rx="6" stroke-width="0.8"/>
+    <text class="h" x="340" y="203" text-anchor="middle">R1</text>
+    <text class="s" x="340" y="223" text-anchor="middle">NAT masquerade</text></g>
+
+  <line class="wire" x1="340" y1="236" x2="340" y2="290"/>
+  <text class="s" x="350" y="268">bridge1 · .1 (DHCP server)</text>
+
+  <!-- LAN subnet bar -->
+  <g class="teal"><rect x="40" y="290" width="600" height="28" rx="4" stroke-width="0.8"/>
+    <text class="h" x="56" y="309">lan · 192.168.2.0/24 · pool .2–.10</text></g>
+
+  <line class="wire" x1="115" y1="318" x2="115" y2="370"/><text class="s" x="122" y="350">ether2</text>
+  <line class="wire" x1="265" y1="318" x2="265" y2="370"/><text class="s" x="272" y="350">ether3</text>
+  <line class="wire" x1="415" y1="318" x2="415" y2="370"/><text class="s" x="422" y="350">ether4</text>
+  <line class="wire" x1="565" y1="318" x2="565" y2="370"/><text class="s" x="572" y="350">ether5</text>
+
+  <g class="gray">
+    <rect x="55" y="370" width="120" height="44" rx="6" stroke-width="0.8"/><text class="h" x="115" y="397" text-anchor="middle">VPC1 · DHCP</text>
+    <rect x="205" y="370" width="120" height="44" rx="6" stroke-width="0.8"/><text class="h" x="265" y="397" text-anchor="middle">VPC2 · DHCP</text>
+    <rect x="355" y="370" width="120" height="44" rx="6" stroke-width="0.8"/><text class="h" x="415" y="397" text-anchor="middle">VPC3 · DHCP</text>
+    <rect x="505" y="370" width="120" height="44" rx="6" stroke-width="0.8"/><text class="h" x="565" y="397" text-anchor="middle">VPC4 · DHCP</text>
+  </g>
+</svg>

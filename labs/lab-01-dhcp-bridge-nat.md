@@ -17,6 +17,10 @@ One CHR router (R1) that:
 
 ## Topology
 
+![Lab 1 topology: home_lan 192.168.1.0/24 with home router and R1 ether1, lan 192.168.2.0/24 on bridge1 with VPC1-VPC4](img/lab-01-topology.svg)
+
+<details><summary>Text version</summary>
+
 ```
 Home router (192.168.1.1)
         │
@@ -30,6 +34,8 @@ Home router (192.168.1.1)
       ├─ ether4 ── VPC3
       └─ ether5 ── VPC4
 ```
+
+</details>
 
 | Item | Value |
 |---|---|
@@ -235,5 +241,71 @@ Watch DHCP live while a VPC runs `ip dhcp`:
 2. The DHCP **network** entry (gateway, mask, DNS).
 3. Traffic would leave with source `192.168.2.x`. The home router has no route back to that subnet, so replies are lost.
 4. With the same subnet on two interfaces, R1 can't tell which port a `192.168.1.x` host is on, and replies can go out the wrong port.
+
+</details>
+
+---
+
+## Follow-up questions
+
+Deeper "what if / why" questions from reviewing the lab.
+
+### WAN side: Cloud0 and the DHCP client
+
+**1. What is Cloud0 really? Is it a switch?**
+
+<details><summary>Answer</summary>
+
+Cloud0 is EVE-NG's link to `pnet0`, a Linux bridge on the EVE-NG server that is attached to the server's real network card. A bridge behaves like a switch, so cabling R1 ether1 to Cloud0 is like plugging R1 into a spare port on the home router. It is not a separate switch device; it is a doorway from the lab to the real home LAN.
+
+</details>
+
+**2. R1 is a DHCP client and a DHCP server at the same time. How?**
+
+<details><summary>Answer</summary>
+
+Different interfaces, different roles.
+
+| | DHCP client | DHCP server |
+|---|---|---|
+| Role | **Asks** for an IP | **Gives** IPs |
+| On R1 | ether1 (WAN) | bridge1 (LAN) |
+| Talks to | Home router answers R1 | VPCs ask R1 |
+
+From the home router R1 receives three things: an IP (`192.168.1.133/24`), a default gateway (`192.168.1.1`, the `0.0.0.0/0` route with flags `DAd`) and DNS (`192.168.1.1`).
+
+</details>
+
+**3. The Cloud0 link goes down. What does R1 lose, and what still works for the VPCs?**
+
+<details><summary>Answer</summary>
+
+The DHCP client on ether1 is no longer bound, so R1 loses all three things it got from the home router:
+
+| Lost | Effect |
+|---|---|
+| WAN IP | R1 has no address on the home LAN |
+| Default route | Nowhere to send internet traffic. This is why `8.8.8.8` fails |
+| DNS | Names don't resolve |
+
+The NAT rule is still there but useless: masquerade needs a route out.
+
+Ping ladder from a VPC (test from the inside out; the first ❌ shows where it broke):
+
+```
+ping 192.168.2.x  (other VPC) ✅  bridge (Layer 2)
+ping 192.168.2.1  (R1)        ✅  R1's bridge IP
+ping 192.168.1.1  (home rtr)  ❌  no WAN IP / route
+ping 8.8.8.8                  ❌  no default route
+ping google.com               ❌  no DNS, no route
+```
+
+</details>
+
+**4. Why must you never run a DHCP server on the port connected to Cloud0?**
+
+<details><summary>Answer</summary>
+
+That port is on your real home LAN. Your phones, laptops and TV ask for an IP by broadcast, and both the home router and R1 would answer. Whoever answers first wins, so some devices would get a `192.168.2.x` address with R1 as gateway, or an address that clashes with the real network. That is a **rogue DHCP server**, and it breaks the home network for everyone.
 
 </details>
