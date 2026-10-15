@@ -309,3 +309,69 @@ ping google.com               ❌  no DNS, no route
 That port is on your real home LAN. Your phones, laptops and TV ask for an IP by broadcast, and both the home router and R1 would answer. Whoever answers first wins, so some devices would get a `192.168.2.x` address with R1 as gateway, or an address that clashes with the real network. That is a **rogue DHCP server**, and it breaks the home network for everyone.
 
 </details>
+
+### LAN side: the bridge
+
+**5. Why does the DHCP server go on a bridge instead of on each port?**
+
+<details><summary>Answer</summary>
+
+DHCP requests are broadcasts, and a broadcast stays inside one Layer-2 network. The bridge joins ether2–ether5 into **one** network, so one IP, one pool and one DHCP server cover all four VPCs. Without the bridge, each port is its own network and needs its own subnet, IP, pool and server.
+
+| | Separate ports | Bridge |
+|---|---|---|
+| Networks | One per port | One shared |
+| Router IPs | One per port, different subnets | One, on the bridge |
+| DHCP servers | One per port | One |
+| PC to PC traffic | Routed by R1 (Layer 3) | Switched by the bridge (Layer 2) |
+
+</details>
+
+**6. VPC1 pings VPC2. Is that traffic routed by R1 or switched by the bridge? How can you prove it?**
+
+<details><summary>Answer</summary>
+
+**Switched.** Both are in `192.168.2.0/24`, so VPC1 doesn't use its gateway at all; it ARPs for VPC2 directly.
+
+Interface traffic counters on ether2/ether3 do **not** prove it: they rise whether traffic is switched or routed. These do:
+
+| Check | Command | Proof |
+|---|---|---|
+| ARP on the VPC | VPC1: `show arp` | VPC2's IP maps to **VPC2's MAC**, not R1's |
+| Traceroute | VPC1: `trace 192.168.2.x` | One hop, no `192.168.2.1` in between |
+| Bridge MAC table | 🖱️ Bridge → **Hosts** · ⌨️ `/interface bridge host print` | VPC MACs learned on their ports: the switch's forwarding table |
+
+Rule: **same subnet = switched (L2, MAC); different subnet = routed (L3, gateway).**
+
+</details>
+
+**7. Where do you see R1's MAC address, and which one do the VPCs use as gateway?**
+
+<details><summary>Answer</summary>
+
+🖱️ Interfaces → double-click the interface → **General** → MAC Address. Or right-click a column header → **Show Columns** → MAC Address to see all of them.
+⌨️ `/interface print detail` · `/interface bridge print`
+
+The VPCs use **bridge1's MAC**, because bridge1 owns `192.168.2.1`. With `auto-mac=yes` the bridge borrows a member port's MAC (usually the first added), so bridge1 and ether2 often show the same MAC. That is normal.
+
+Test: on VPC1, `ping 8.8.8.8` then `show arp` shows bridge1's MAC for `192.168.2.1` (routed). `ping` VPC2 then `show arp` shows VPC2's own MAC (switched).
+
+</details>
+
+**8. ether2 joins the bridge but the DHCP server is still on ether2. What happens?**
+
+<details><summary>Answer</summary>
+
+ether2 becomes a slave port (`S` flag). The server turns **invalid** (`I` flag, red in WinBox) with `;;; DHCP server can not run on slave interface!`, and VPCs get no IP.
+
+Why: the bridge owns everything arriving on its member ports. The DHCP Discover lands on bridge1, so a server listening on ether2 never sees it.
+
+Fix:
+```
+/ip dhcp-server set server1 interface=bridge1
+/ip address set [find interface=ether2] interface=bridge1
+```
+
+Watch out: an **IP address** left on a slave port gives **no** warning. It just doesn't work properly.
+
+</details>
