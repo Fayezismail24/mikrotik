@@ -25,7 +25,7 @@ Every lab README follows the same pattern:
 
 | # | Lab | Topics | Cert | Status |
 |---|---|---|---|---|
-| 1 | [DHCP server, bridge and NAT](lab-01-dhcp-bridge-nat/) · [Q&A](lab-01-dhcp-bridge-nat/qa.md) | WAN DHCP client, bridge with 4 LAN ports, DHCP server (pool + network), NAT masquerade, VPCS clients | MTCNA | ✅ Tested |
+| 1 | [DHCP server, bridge and NAT](lab-01-dhcp-bridge-nat/) · [Q&A (52)](lab-01-dhcp-bridge-nat/qa.md) | WAN DHCP client, bridge with 4 LAN ports, DHCP server (pool + network), NAT masquerade, VPCS clients | MTCNA | ✅ Tested |
 
 ---
 
