@@ -46,6 +46,7 @@ WinBox paths follow WinBox 4 on RouterOS 7. Untested sections may have small men
 | M | [Monitoring](M-monitoring/) | Logs, torch, sniffer, Netwatch, SNMP, The Dude, supout.rif | MTCNA | 📝 |
 | N | [Scripting](N-scripting/) | Language basics, scheduler, backup scripts, REST API | 🔹 Beyond | 📝 |
 | O | [Security hardening](O-security-hardening/) | Services, users, MAC access, device-mode, audit | MTCSE | 📝 |
+| 🧪 | [Labs](labs/) | Complete hands-on EVE-NG exercises combining several sections. Lab 1: DHCP server, bridge and NAT | MTCNA | 🔄 |
 
 📄 **[Cheatsheet](cheatsheet.md)**: the most-used tasks on one page, each with its WinBox path and CLI command.
 
