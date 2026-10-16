@@ -1,6 +1,6 @@
 # Labs: Hands-On EVE-NG Exercises
 
-> **Status:** 🔄 Lab 1 done. More labs are added as the course goes.
+> **Status:** 🔄 Lab 1 done, Lab 2 in progress. More labs are added as the course goes.
 
 Each lab is a complete exercise built in EVE-NG with MikroTik CHR, and each one has its own folder:
 
@@ -26,6 +26,7 @@ Every lab README follows the same pattern:
 | # | Lab | Topics | Cert | Status |
 |---|---|---|---|---|
 | 1 | [DHCP server, bridge and NAT](lab-01-dhcp-bridge-nat/) · [Q&A (33)](lab-01-dhcp-bridge-nat/qa.md) | WAN DHCP client, bridge with 4 LAN ports, DHCP server (pool + network), NAT masquerade, VPCS clients | MTCNA | ✅ Tested |
+| 2 | [VLANs](lab-02-vlans/) | Fresh router, 6 VPCs on ether2–ether7, VLANs on the bridge | MTCNA · MTCRE | 🔄 In progress |
 
 ---
 
