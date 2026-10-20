@@ -26,7 +26,7 @@ Every lab README follows the same pattern:
 | # | Lab | Topics | Cert | Status |
 |---|---|---|---|---|
 | 1 | [DHCP server, bridge and NAT](lab-01-dhcp-bridge-nat/) · [Q&A (33)](lab-01-dhcp-bridge-nat/qa.md) | WAN DHCP client, bridge with 4 LAN ports, DHCP server (pool + network), NAT masquerade, VPCS clients | MTCNA | ✅ Tested |
-| 2 | [VLANs](lab-02-vlans/) | Fresh router, 6 VPCs on ether2–ether7, VLANs on the bridge | MTCNA · MTCRE | 🔄 In progress |
+| 2 | [VLANs](lab-02-vlans/) · [Q&A (7)](lab-02-vlans/qa.md) | Router R1 + switch SW1 (CHR), trunk on ether2, bridge VLAN filtering, VLANs 20/30/40 with 2 VPCs each, out-of-band management | MTCNA · MTCRE | 🔄 Switch VLANs ✅ · inter-VLAN routing next |
 
 ---
 

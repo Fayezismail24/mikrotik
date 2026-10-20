@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="560" viewBox="0 0 720 560" role="img" aria-labelledby="title desc">
+  <title id="title">Lab 2 topology: VLANs with a router and a switch</title>
+  <desc id="desc">Home router 192.168.1.1 connects through EVE-NG Cloud0 (pnet0) to R1 ether1 and SW1 ether1 (management), both DHCP clients. R1 ether2 connects to SW1 ether2 as a trunk tagged with VLANs 20, 30 and 40. SW1 bridge1 with VLAN filtering puts ether3 and ether4 (VPC2, VPC3) in VLAN 20, ether5 and ether6 (VPC4, VPC5) in VLAN 30, and ether7 and ether8 (VPC6, VPC7) in VLAN 40.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .h { font-size: 14px; font-weight: 600; }
+    .s { font-size: 12px; }
+    .lbl { fill: #5F5E5A; }
+    .wire { stroke: #888780; stroke-width: 1; fill: none; }
+    .trunk { stroke: #534AB7; stroke-width: 3; fill: none; }
+    .gray rect { fill: #F1EFE8; stroke: #5F5E5A; }
+    .gray .h { fill: #444441; }
+    .gray .s { fill: #5F5E5A; }
+    .purple rect { fill: #EEEDFE; stroke: #534AB7; }
+    .purple .h { fill: #3C3489; }
+    .purple .s { fill: #534AB7; }
+    .teal > rect { fill: #E1F5EE; stroke: #0F6E56; }
+    .teal .h { fill: #085041; }
+    .teal .s { fill: #0F6E56; }
+    .vlan rect { fill: none; stroke: #0F6E56; stroke-dasharray: 4 3; }
+    @media (prefers-color-scheme: dark) {
+      .lbl { fill: #D3D1C7; }
+      .wire { stroke: #B4B2A9; }
+      .trunk { stroke: #AFA9EC; }
+      .gray rect { fill: #444441; stroke: #B4B2A9; }
+      .gray .h { fill: #F1EFE8; }
+      .gray .s { fill: #D3D1C7; }
+      .purple rect { fill: #3C3489; stroke: #AFA9EC; }
+      .purple .h { fill: #EEEDFE; }
+      .purple .s { fill: #CECBF6; }
+      .teal > rect { fill: #085041; stroke: #5DCAA5; }
+      .teal .h { fill: #9FE1CB; }
+      .teal .s { fill: #5DCAA5; }
+      .vlan rect { stroke: #5DCAA5; }
+    }
+  </style>
+
+  <!-- Home router -->
+  <g class="gray"><rect x="250" y="20" width="220" height="50" rx="8" stroke-width="0.8"/>
+    <text class="h" x="360" y="41" text-anchor="middle">Home router</text>
+    <text class="s" x="360" y="59" text-anchor="middle">192.168.1.1 · real LAN</text></g>
+  <line class="wire" x1="360" y1="70" x2="360" y2="100"/>
+
+  <!-- Cloud0 -->
+  <g class="gray"><rect x="250" y="100" width="220" height="50" rx="8" stroke-width="0.8" stroke-dasharray="4 3"/>
+    <text class="h" x="360" y="121" text-anchor="middle">Net · Cloud0 / pnet0</text>
+    <text class="s" x="360" y="139" text-anchor="middle">192.168.1.0/24</text></g>
+
+  <!-- Cloud to R1 / SW1 -->
+  <line class="wire" x1="300" y1="150" x2="150" y2="200"/>
+  <text class="s lbl" x="120" y="178">ether1 · DHCP</text>
+  <line class="wire" x1="420" y1="150" x2="570" y2="200"/>
+  <text class="s lbl" x="510" y="178">ether1 · DHCP (mgmt)</text>
+
+  <!-- R1 -->
+  <g class="purple"><rect x="50" y="200" width="200" height="56" rx="8" stroke-width="0.8"/>
+    <text class="h" x="150" y="223" text-anchor="middle">R1 (CHR 7.24.5)</text>
+    <text class="s" x="150" y="243" text-anchor="middle">router · gateways in Part 4</text></g>
+
+  <!-- Trunk -->
+  <line class="trunk" x1="250" y1="228" x2="470" y2="228"/>
+  <text class="s lbl" x="360" y="218" text-anchor="middle">ether2 ⇄ ether2 · TRUNK</text>
+  <text class="s lbl" x="360" y="246" text-anchor="middle">tagged 20, 30, 40</text>
+
+  <!-- SW1 -->
+  <g class="purple"><rect x="470" y="200" width="200" height="56" rx="8" stroke-width="0.8"/>
+    <text class="h" x="570" y="223" text-anchor="middle">SW1 (CHR 7.24.5)</text>
+    <text class="s" x="570" y="243" text-anchor="middle">switch only</text></g>
+  <line class="wire" x1="570" y1="256" x2="570" y2="290"/>
+
+  <!-- bridge1 -->
+  <g class="teal"><rect x="20" y="290" width="680" height="250" rx="20" stroke-width="0.8"/>
+    <text class="h" x="360" y="318" text-anchor="middle">SW1 bridge1 · vlan-filtering=yes</text>
+    <text class="s" x="360" y="336" text-anchor="middle">access ports: PVID = untagged VLAN</text>
+
+    <g class="vlan">
+      <rect x="40" y="350" width="200" height="170" rx="12" stroke-width="1"/>
+      <rect x="260" y="350" width="200" height="170" rx="12" stroke-width="1"/>
+      <rect x="480" y="350" width="200" height="170" rx="12" stroke-width="1"/>
+    </g>
+    <text class="h" x="140" y="373" text-anchor="middle">VLAN 20</text>
+    <text class="s" x="140" y="390" text-anchor="middle">192.168.20.0/24</text>
+    <text class="h" x="360" y="373" text-anchor="middle">VLAN 30</text>
+    <text class="s" x="360" y="390" text-anchor="middle">192.168.30.0/24</text>
+    <text class="h" x="580" y="373" text-anchor="middle">VLAN 40</text>
+    <text class="s" x="580" y="390" text-anchor="middle">192.168.40.0/24</text>
+  </g>
+
+  <g class="gray">
+    <rect x="50" y="405" width="85" height="100" rx="8" stroke-width="0.8"/>
+    <text class="h" x="92" y="430" text-anchor="middle">VPC2</text><text class="s" x="92" y="450" text-anchor="middle">ether3</text><text class="s" x="92" y="470" text-anchor="middle">.20.2</text>
+    <rect x="145" y="405" width="85" height="100" rx="8" stroke-width="0.8"/>
+    <text class="h" x="187" y="430" text-anchor="middle">VPC3</text><text class="s" x="187" y="450" text-anchor="middle">ether4</text><text class="s" x="187" y="470" text-anchor="middle">.20.3</text>
+    <rect x="270" y="405" width="85" height="100" rx="8" stroke-width="0.8"/>
+    <text class="h" x="312" y="430" text-anchor="middle">VPC4</text><text class="s" x="312" y="450" text-anchor="middle">ether5</text><text class="s" x="312" y="470" text-anchor="middle">.30.4</text>
+    <rect x="365" y="405" width="85" height="100" rx="8" stroke-width="0.8"/>
+    <text class="h" x="407" y="430" text-anchor="middle">VPC5</text><text class="s" x="407" y="450" text-anchor="middle">ether6</text><text class="s" x="407" y="470" text-anchor="middle">.30.5</text>
+    <rect x="490" y="405" width="85" height="100" rx="8" stroke-width="0.8"/>
+    <text class="h" x="532" y="430" text-anchor="middle">VPC6</text><text class="s" x="532" y="450" text-anchor="middle">ether7</text><text class="s" x="532" y="470" text-anchor="middle">.40.6</text>
+    <rect x="585" y="405" width="85" height="100" rx="8" stroke-width="0.8"/>
+    <text class="h" x="627" y="430" text-anchor="middle">VPC7</text><text class="s" x="627" y="450" text-anchor="middle">ether8</text><text class="s" x="627" y="470" text-anchor="middle">.40.7</text>
+  </g>
+</svg>
